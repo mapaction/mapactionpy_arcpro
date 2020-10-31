@@ -1,0 +1,6 @@
+unittest-xml-reporting
+coverage
+python-coveralls
+coveralls
+flake8
+python-slugify

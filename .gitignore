@@ -1,0 +1,21 @@
+# Compiled python modules.
+*.pyc
+
+# Setuptools distribution folder.
+/dist/
+
+# Python egg metadata, regenerated from source files by setuptools.
+/*.egg-info
+
+# Visual Studio Code settings
+/.vscode
+.coverage
+
+.idea/
+all-tests.cmd
+run-all-tests.cmd
+htmlcov/
+mapactionpy_arcpro/tests/test_data/output*
+mapactionpy_arcpro/tests/test_data/output_arcgis_10_6_reference_landscape_bottom.mxd
+mapactionpy_arcpro/tests/test_data/arcgis_10_6_reference_landscape_bottom.json
+junit-reports/

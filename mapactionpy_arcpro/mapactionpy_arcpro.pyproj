@@ -1,0 +1,62 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>e70521e9-d79b-4a3d-a851-a5d44495c63b</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>main.py</StartupFile>
+    <SearchPath>..\..\..\..\..\..\Python27\Lib\site-packages</SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>MapChef</Name>
+    <RootNamespace>MapChef</RootNamespace>
+    <LaunchProvider>Web launcher</LaunchProvider>
+    <CommandLineArguments>--cmf "D:\MapAction\2019-06-25 - Automation - El Salvador" --product "Country Overview with Admin 1 &amp; 2 Boundaries &amp; P-Codes" --country "El Salvador" --cookbook "D:\MapAction\2019-06-25 - Automation - El Salvador\GIS\3_Mapping\31_Resources\316_Automation\mapCookbook.json" --layerConfig "D:\MapAction\2019-06-25 - Automation - El Salvador\GIS\3_Mapping\31_Resources\316_Automation\layerProperties.json" --t "C:\MapAction\MA001_country-overview-with-admin-1-boundaries-p-codes.mxd" --layerDirectory "D:\MapAction\2019-06-25 - Automation - El Salvador\GIS\3_Mapping\31_Resources\312_Layer_files"</CommandLineArguments>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <InterpreterId>Global|PythonCore|2.7-32</InterpreterId>
+    <WebBrowserUrl>http://localhost</WebBrowserUrl>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="arcpro_runner.py" />
+    <Compile Include="main.py" />
+    <Compile Include="layer_properties.py" />
+    <Compile Include="label_class.py" />
+    <Compile Include="map_layer.py" />
+    <Compile Include="map_chef.py" />
+    <Compile Include="map_cookbook.py" />
+    <Compile Include="map_result.py" />
+    <Compile Include="map_report.py" />
+    <Compile Include="map_recipe.py" />
+    <Compile Include="__init__.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="Global|PythonCore|2.7-32" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Config\" />
+    <Folder Include="Images\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Config\layerProperties.json" />
+    <Content Include="Config\mapCookbook.json" />
+    <Content Include="Config\notes.txt" />
+    <Content Include="Images\Result.png" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+</Project>

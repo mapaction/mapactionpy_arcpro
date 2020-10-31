@@ -1,0 +1,122 @@
+format_version: 9
+common:
+  testing_stages: &testing_stages
+    - setup-and-test:
+        resources:
+          - hq
+          - windows
+          - arcpro10-6
+        artifacts:
+          - test:
+              source: "junit-reports/*.xml"
+              destination: test-reports
+        tasks:
+          - exec:
+              command: cmd
+              arguments:
+                - "/c"
+                - "C:/py27arcgis106/ArcGIS10.6/python.exe"
+                - "-m"
+                - virtualenv
+                - "--system-site-packages"
+                - env
+          # Install mapactionpy-controller from git, before installing
+          # the mapactionpy-arcpro dependancies from requirements-dev.txt
+          - exec:
+              command: "env/Scripts/python.exe"
+              arguments:
+              - "-m"
+              - pip
+              - install
+              - "-e"
+              - mapy-controller
+          - exec:
+              command: "env/Scripts/python.exe"
+              arguments:
+              - "-m"
+              - pip
+              - install
+              - "-r"
+              - mapy-arcpro/requirements-dev.txt
+          - exec:
+              command: "env/Scripts/python.exe"
+              arguments:
+              - "-m"
+              - pip
+              - install
+              - "-e"
+              - mapy-arcpro
+          - exec:
+              command: "mkdir"
+              arguments:
+              - "junit-reports"
+          - exec:
+              command: "env/Scripts/python.exe"
+              arguments:
+              - "-m"
+              - flake8
+              - mapy-arcpro
+              - "--append-config=mapy-arcpro/.flake8"
+          - exec:
+              command: "mapy-arcpro/gocd-run-and-report-unittests.cmd"
+
+pipelines:
+  unittest-mapy-arcpro-prs-in-combo:
+    group: mapactionpy_arcpro
+    label_template: ${COUNT}
+    lock_behavior: unlockWhenFinished
+    materials:
+      mapy-arcpro:
+        scm: 8d4486df-9f5c-47fe-963e-ebd6ae376f83
+        destination: mapy-arcpro
+      mapy-controller:
+        scm: 7b37b961-6310-45e4-9968-25a17397b6a3
+        destination: mapy-controller
+    stages:
+      - *testing_stages
+  unittest-mapy-arcpro-prs-against-master-controller:
+    group: mapactionpy_arcpro
+    label_template: ${COUNT}
+    lock_behavior: unlockWhenFinished
+    materials:
+      mapy-arcpro:
+        scm: 8d4486df-9f5c-47fe-963e-ebd6ae376f83
+        destination: mapy-arcpro
+      mapy-controller:
+        git: https://github.com/mapaction/mapactionpy_controller.git
+        branch: master
+        destination: mapy-controller
+    stages:
+      - *testing_stages
+  master-mapy-arcpro:
+    group: mapactionpy_arcpro
+    label_template: ${COUNT}
+    lock_behavior: unlockWhenFinished
+    materials:
+      mapy-arcpro:
+        git: https://github.com/mapaction/mapactionpy_arcpro.git
+        branch: master
+        destination: mapy-arcpro
+      mapy-controller:
+        git: https://github.com/mapaction/mapactionpy_controller.git
+        branch: master
+        destination: mapy-controller
+    stages:
+      - *testing_stages
+
+
+    # <artifact type="build" src="target/**/*.xml" />
+    # <artifact type="test" src="target/junit-output" dest="junit"/>
+
+    # stages:
+    #   - *testing_stages
+    #   - deploy:
+    #       resources:
+    #         - hq
+    #         - windows
+    #       artifacts:
+    #         - build:
+    #             source: default-cmf/deploy-to-fileserver.log
+    #       tasks:
+    #         - exec:
+    #             command: default-cmf/deploy-to-fileserver.cmd
