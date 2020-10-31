@@ -13,18 +13,15 @@ from slugify import slugify
 from map_chef import MapChef
 from mapactionpy_controller.xml_exporter import XmlExporter
 from mapactionpy_controller.plugin_base import BaseRunnerPlugin
-from mapactionpy_controller.crash_move_folder import CrashMoveFolder
+# from mapactionpy_controller.crash_move_folder import CrashMoveFolder
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(module)s %(name)s.%(funcName)s +%(lineno)s: %(levelname)-8s %(message)s'
 )
 
-# import sys
-# import sysif sys.version_info[0] >= 3:
-#     unicode = str
-
 logger = logging.getLogger(__name__)
+
 
 class ArcProRunner(BaseRunnerPlugin):
     """
@@ -45,7 +42,6 @@ class ArcProRunner(BaseRunnerPlugin):
     def build_project_files(self, **kwargs):
         # Construct a Crash Move Folder object if the cmf_description.json exists
         recipe = kwargs['state']
-        # mxd = arcpy.mapping.MapDocument(recipe.map_project_path)
 
         aprx = arcpy.mp.ArcGISProject(recipe.map_project_path)
 
@@ -380,11 +376,11 @@ class ArcProRunner(BaseRunnerPlugin):
 
         output_layout_path = os.path.abspath(os.path.join(output_dir, output_layout_name))
 
-        # Copy layer file to 
+        # Copy layer file to project path
         copyfile(recipe.template_path, output_layout_path)
-        aprx = arcpy.mp.ArcGISProject(aprxPath)
+        aprx = arcpy.mp.ArcGISProject(recipe.map_project_path)
 
-        aprx.importDocument(output_layout_name)
+        aprx.importDocument(output_layout_path)
 
         aprx.save()
 
