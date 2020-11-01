@@ -190,17 +190,15 @@ class MapChef:
         mainMapFrame.map = mainMap
         mainMapFrame.zoomToAllLayers()
         self.aprx.save()
-
-        # for lyr in mainMap.listLayers():
-        #    lyr.zoom
-
-
-
-
+        for lyr in mainMap.listLayers():
+            if (lyr.name == "mainmap-admn-ad1-py-s0-reference"):
+                arcpy.SelectLayerByAttribute_management(lyr, "NEW_SELECTION", "1=1")
+                mainMapFrame.camera.setExtent(mainMapFrame.getLayerExtent(lyr, True, True))
+                mainMapFrame.zoomToAllLayers()
+                break
 
         self.enableLayers()
         # arcpy.RefreshTOC()
-        # arcpy.RefreshActiveView()
         arcpy.env.addOutputsToMap = True
         self.aprx.save()
 
@@ -525,11 +523,9 @@ class MapChef:
     # `updateLayer()` and `addLayer()` seem very similar. Is it possible to refactor to reduce
     # duplication?
     def addLayer(self, recipe_lyr, recipe_frame):
-        # addLayer(recipe_lyr, recipe_lyr.layer_file_path, recipe_lyr.name)
         mapResult = MapResult(recipe_lyr.name)
         logging.debug('Attempting to add layer; {}'.format(recipe_lyr.layer_file_path))
-        #arc_lyr_to_add = arcpy.mapping.Layer(recipe_lyr.layer_file_path)
-        lyrFile = arcpy.mp.LayerFile(recipe_lyr.layer_file_path)            
+        lyrFile = arcpy.mp.LayerFile(recipe_lyr.layer_file_path)
 
         for arc_lyr_to_add in lyrFile.listLayers():
             if (".gdb/" not in recipe_lyr.reg_exp):
