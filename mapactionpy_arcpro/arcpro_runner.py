@@ -7,8 +7,8 @@ import os
 # import re
 from shutil import copyfile
 # from zipfile import ZipFile
-# from PIL import Image
-# from resizeimage import resizeimage
+from PIL import Image
+from resizeimage import resizeimage
 from slugify import slugify
 from map_chef import MapChef
 from mapactionpy_controller.xml_exporter import XmlExporter
@@ -47,7 +47,7 @@ class ArcProRunner(BaseRunnerPlugin):
 
         self.chef = MapChef(aprx, self.cmf, self.hum_event)
         self.chef.cook(recipe)
-        self.chef.alignLegend(self.hum_event.orientation)
+        # self.chef.alignLegend(self.hum_event.orientation)
 
         # Output the Map Generation report alongside the MXD
         reportJsonFile = recipe.map_project_path.replace(".aprx", ".json")
@@ -163,20 +163,20 @@ class ArcProRunner(BaseRunnerPlugin):
         Does the actual work of exporting of the PDF, Jpeg and thumbnail files.
         """
         export_dir = export_params["exportDirectory"]
-        arc_mxd = arcpy.mapping.MapDocument(recipe.map_project_path)
+        arc_aprx = arcpy.mp.ArcGISProject(recipe.map_project_path)
 
         core_file_name = os.path.splitext(os.path.basename(recipe.map_project_path))[0]
         export_params["coreFileName"] = core_file_name
         productType = "mapsheet"
         export_params["productType"] = productType
 
-        export_params['pdfFileLocation'] = self.exportPdf(core_file_name, export_dir, arc_mxd, export_params)
-        export_params['jpgFileLocation'] = self.exportJpeg(core_file_name, export_dir, arc_mxd, export_params)
+        export_params['pdfFileLocation'] = self.exportPdf(core_file_name, export_dir, arc_aprx, export_params)
+        export_params['jpgFileLocation'] = self.exportJpeg(core_file_name, export_dir, arc_aprx, export_params)
         export_params['pngThumbNailFileLocation'] = self.exportPngThumbNail(
-            core_file_name, export_dir, arc_mxd, export_params)
+            core_file_name, export_dir, arc_aprx, export_params)
 
         if recipe.atlas:
-            self._export_atlas(recipe, arc_mxd, export_dir, core_file_name)
+            self._export_atlas(recipe, arc_aprx, export_dir, core_file_name)
 
         xmlExporter = XmlExporter(self.hum_event, self.chef)
         export_params['mapNumber'] = recipe.mapnumber
@@ -187,6 +187,7 @@ class ArcProRunner(BaseRunnerPlugin):
         export_params["ymin"] = self.miny
         export_params["xmax"] = self.maxx
         export_params["ymax"] = self.maxy
+        export_params["themes"] = "None"
         export_params['exportXmlFileLocation'] = xmlExporter.write(export_params)
 
         return export_params
@@ -305,32 +306,38 @@ class ArcProRunner(BaseRunnerPlugin):
             # if arcpy.Exists(os.path.join(export_dir, shpFile)):
             #     arcpy.Delete_management(os.path.join(export_dir, shpFile))
 
-    def exportJpeg(self, coreFileName, exportDirectory, mxd, exportParams):
+    def exportJpeg(self, coreFileName, exportDirectory, aprx, exportParams):
         # JPEG
         jpgFileName = coreFileName+"-"+str(self.hum_event.default_jpeg_res_dpi) + "dpi.jpg"
         jpgFileLocation = os.path.join(exportDirectory, jpgFileName)
         exportParams["jpgFileName"] = jpgFileName
-        arcpy.mapping.ExportToJPEG(mxd, jpgFileLocation)
+        Layout = aprx.listLayouts()[0]
+        Layout.exportToJPEG(jpgFileLocation)
         jpgFileSize = os.path.getsize(jpgFileLocation)
         exportParams["jpgFileSize"] = jpgFileSize
         return jpgFileLocation
 
-    def exportPdf(self, coreFileName, exportDirectory, mxd, exportParams):
+    def exportPdf(self, coreFileName, exportDirectory, aprx, exportParams):
         # PDF
         pdfFileName = coreFileName+"-"+str(self.hum_event.default_pdf_res_dpi) + "dpi.pdf"
         pdfFileLocation = os.path.join(exportDirectory, pdfFileName)
         exportParams["pdfFileName"] = pdfFileName
-        arcpy.mapping.ExportToPDF(mxd, pdfFileLocation, resolution=int(self.hum_event.default_pdf_res_dpi))
+
+        Layout = aprx.listLayouts()[0]
+        Layout.exportToPDF(pdfFileLocation, resolution=int(self.hum_event.default_pdf_res_dpi))
+
         pdfFileSize = os.path.getsize(pdfFileLocation)
         exportParams["pdfFileSize"] = pdfFileSize
         return pdfFileLocation
 
-    def exportPngThumbNail(self, coreFileName, exportDirectory, mxd, exportParams):
+    def exportPngThumbNail(self, coreFileName, exportDirectory, aprx, exportParams):
         # PNG Thumbnail.  Need to create a larger image first.
         # If this isn't done, the thumbnail is pixelated amd doesn't look good
         pngTmpThumbNailFileName = "tmp-thumbnail.png"
         pngTmpThumbNailFileLocation = os.path.join(exportDirectory, pngTmpThumbNailFileName)
-        arcpy.mapping.ExportToPNG(mxd, pngTmpThumbNailFileLocation)
+
+        Layout = aprx.listLayouts()[0]
+        Layout.exportToPNG(pngTmpThumbNailFileLocation)
 
         pngThumbNailFileName = "thumbnail.png"
         pngThumbNailFileLocation = os.path.join(exportDirectory, pngThumbNailFileName)

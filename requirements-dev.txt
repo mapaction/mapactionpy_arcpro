@@ -4,3 +4,4 @@ python-coveralls
 coveralls
 flake8
 python-slugify
+pillow

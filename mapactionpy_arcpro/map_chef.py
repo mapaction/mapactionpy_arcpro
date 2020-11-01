@@ -88,10 +88,9 @@ class MapChef:
         """
         Makes all layers invisible for all data-frames
         """
-        # SAH for df in arcpy.mapping.ListDataFrames(self.aprx):
-        # SAH     for lyr in arcpy.mapping.ListLayers(self.aprx, "", df):
-        # SAH         lyr.visible = False
-        pass
+        for m in self.aprx.listMaps("*"):
+            for lyr in m.listLayers():
+                lyr.visible = False
 
     def returnScale(self, dfscale):
         # https://community.esri.com/thread/163596
@@ -112,22 +111,25 @@ class MapChef:
 
     def scale(self):
         newScale = ""
-        for df in arcpy.mapping.ListDataFrames(self.aprx):
-            if df.name.lower() == "main map":
-                intValue = '{:,}'.format(int(df.scale))
-                newScale = "1: " + intValue + " (At A3)"
-                break
+        lyt = self.aprx.listLayouts("*")[0]
+
+        for df in lyt.listElements("MAPFRAME_ELEMENT", "Main map*"):
+            intValue = '{:,}'.format(int(df.camera.scale))
+            newScale = "1: " + intValue + " (At A3)"
+            break
+
         return newScale
 
     def spatialReference(self):
         spatialReferenceString = "Unknown"
-        for df in arcpy.mapping.ListDataFrames(self.aprx):
-            if df.name.lower() == "main map":
-                if (len(df.spatialReference.datumName) > 0):
-                    spatialReferenceString = df.spatialReference.datumName
-                    spatialReferenceString = spatialReferenceString[2:]
-                    spatialReferenceString = spatialReferenceString.replace('_', ' ')
-                break
+        lyt = self.aprx.listLayouts("*")[0]
+
+        for df in lyt.listElements("MAPFRAME_ELEMENT", "Main map*"):
+            # if (len(df.spatialReference.datumName) > 0):
+            #     spatialReferenceString = df.spatialReference.datumName
+            #     spatialReferenceString = spatialReferenceString[2:]
+            #     spatialReferenceString = spatialReferenceString.replace('_', ' ')
+            break
         return spatialReferenceString
 
     # TODO asmith 2020/0306
@@ -137,18 +139,20 @@ class MapChef:
         """
         Makes all layers visible for all data-frames
         """
-        for df in arcpy.mapping.ListDataFrames(self.aprx):
-            for lyr in arcpy.mapping.ListLayers(self.aprx, "", df):
+        for m in self.aprx.listMaps("*"):
+            for lyr in m.listLayers():
                 lyr.visible = True
 
     def removeLayers(self):
         """
         Removes all layers for all data-frames
         """
-        # SAH for df in arcpy.mapping.ListDataFrames(self.aprx):
-        # SAH     for lyr in arcpy.mapping.ListLayers(self.aprx, "", df):
-        # SAH         if (lyr.longName != "Data Driven Pages"):
-        # SAH             arcpy.mapping.RemoveLayer(df, lyr)
+
+        for m in self.aprx.listMaps("*"):
+            for lyr in m.listLayers():
+                if (lyr.longName != "Data Driven Pages"):
+                    arcpy.mp.RemoveLayer(lyr)
+
         self.aprx.save()
 
     # TODO asmith 2020/03/06
@@ -176,13 +180,28 @@ class MapChef:
                 self.summary = self.recipe.summary
             for mf in self.recipe.map_frames:
                 for layer in mf.layers:
+                    print(layer.name + "/" + mf.name)
                     self.process_layer(layer, mf)
 
+        # Set map in map-frame:
+        lyt = self.aprx.listLayouts("*")[0]
+        mainMapFrame = lyt.listElements("mapframe_element", "Main map*")[0]
+        mainMap = self.aprx.listMaps("Main map*")[0]
+        mainMapFrame.map = mainMap
+        mainMapFrame.zoomToAllLayers()
+        self.aprx.save()
+
+        # for lyr in mainMap.listLayers():
+        #    lyr.zoom
+
+
+
+
+
         self.enableLayers()
-        arcpy.RefreshTOC()
-        arcpy.RefreshActiveView()
+        # arcpy.RefreshTOC()
+        # arcpy.RefreshActiveView()
         arcpy.env.addOutputsToMap = True
-        self.showLegendEntries()
         self.aprx.save()
 
         if (recipe is not None):
@@ -286,10 +305,19 @@ class MapChef:
             # arc_lyr_to_update = arcpy.mapping.ListLayers(self.aprx, recipe_lyr.name, self.dataFrame)[0]
             # Try this instead
             lyr_index = recipe_frame.layers.index(recipe_lyr)
-            arc_lyr_to_update = arcpy.mapping.ListLayers(self.aprx, None, arc_data_frame)[lyr_index]
 
+            # arc_lyr_to_update = None
+            # for m in self.aprx.listMaps("*"):
+            #    for lyr in m.listLayers():
+            #        print(lyr.name)
+            #        if (lyr.name == recipe_lyr.name):
+            #            arc_lyr_to_update = lyr
+
+            # arc_lyr_to_update = arcpy.mapping.ListLayers(self.aprx, None, arc_data_frame)[lyr_index]
+
+            mapResult = self.addLayer(recipe_lyr, arc_data_frame)
             # Replace existing layer
-            mapResult = self.updateLayer(arc_lyr_to_update, recipe_lyr, recipe_frame)
+            # mapResult = self.updateLayer(arc_lyr_to_update, recipe_lyr, recipe_frame)
         except IndexError:
             # Layer doesn't exist, add new layer
             mapResult = self.addLayer(recipe_lyr, arc_data_frame)
@@ -304,8 +332,8 @@ class MapChef:
                 # new_layer = lyr_list[0]
                 # Try this instead
                 lyr_index = recipe_frame.layers.index(recipe_lyr)
-                new_layer = arcpy.mapping.ListLayers(self.aprx, None, arc_data_frame)[lyr_index]
-                self.applyZoom(arc_data_frame, new_layer, 0)
+                # new_layer = arcpy.mapping.ListLayers(self.aprx, None, arc_data_frame)[lyr_index]
+                # self.applyZoom(arc_data_frame, new_layer, 0)
             except IndexError:
                 pass
 
@@ -349,7 +377,9 @@ class MapChef:
     """
 
     def updateTextElements(self):
-        for elm in arcpy.mapping.ListLayoutElements(self.aprx, "TEXT_ELEMENT"):
+        lyt = self. aprx.listLayouts()[0]
+
+        for elm in lyt.listElements("TEXT_ELEMENT"):
             if elm.name == "country":
                 elm.text = self.eventConfiguration.country_name
             if elm.name == "title":
@@ -498,11 +528,14 @@ class MapChef:
         # addLayer(recipe_lyr, recipe_lyr.layer_file_path, recipe_lyr.name)
         mapResult = MapResult(recipe_lyr.name)
         logging.debug('Attempting to add layer; {}'.format(recipe_lyr.layer_file_path))
-        arc_lyr_to_add = arcpy.mapping.Layer(recipe_lyr.layer_file_path)
-        if (".gdb/" not in recipe_lyr.reg_exp):
-            mapResult = self.addLayerWithFile(recipe_lyr, arc_lyr_to_add, recipe_lyr.name, recipe_frame)
-        else:
-            mapResult = self.addLayerWithGdb(recipe_lyr, arc_lyr_to_add, recipe_lyr.name, recipe_frame)
+        #arc_lyr_to_add = arcpy.mapping.Layer(recipe_lyr.layer_file_path)
+        lyrFile = arcpy.mp.LayerFile(recipe_lyr.layer_file_path)            
+
+        for arc_lyr_to_add in lyrFile.listLayers():
+            if (".gdb/" not in recipe_lyr.reg_exp):
+                mapResult = self.addLayerWithFile(recipe_lyr, arc_lyr_to_add, recipe_lyr.name, recipe_frame)
+            else:
+                mapResult = self.addLayerWithGdb(recipe_lyr, arc_lyr_to_add, recipe_lyr.name, recipe_frame)
         return mapResult
 
     # TODO: asmith 2020/03/06
@@ -572,7 +605,7 @@ class MapChef:
             datasetName = os.path.splitext(base)[0]
             dataDirectory = os.path.dirname(os.path.realpath(dataFile))
 
-            if layerToAdd.supports("LABELCLASSES"):
+            if layerToAdd.supports("labelclasses"):
                 for labelClass in layerProperties.label_classes:
                     for lblClass in layerToAdd.labelClasses:
                         if (lblClass.className == labelClass.class_name):
@@ -581,10 +614,16 @@ class MapChef:
                             lblClass.expression = labelClass.expression
                             lblClass.showClassLabels = labelClass.show_class_labels
 
-            if layerToAdd.supports("DATASOURCE"):
+            if layerToAdd.supports("datasource"):
                 for datasetType in self.datasetTypes:
                     try:
-                        layerToAdd.replaceDataSource(dataDirectory, datasetType, datasetName)
+                        cp = layerToAdd.connectionProperties
+
+                        cp['connection_info']['database'] = dataDirectory
+                        cp['dataset'] = datasetName + ".shp"  # Use dictionary for suffixes
+                        layerToAdd.updateConnectionProperties(layerToAdd.connectionProperties, cp)
+
+                        # layerToAdd.replaceDataSource(dataDirectory, datasetType, datasetName)
                         mapResult.message = "Layer added successfully"
                         mapResult.added = True
                         ds = DataSource(dataFile)
@@ -596,7 +635,7 @@ class MapChef:
 
             if ((mapResult.added is True) and (layerProperties.definition_query)):
                 definitionQuery = layerProperties.definition_query.replace('{COUNTRY_NAME}',
-                                                                           self.eventConfiguration.country_name)
+                                                                            self.eventConfiguration.country_name)  # NOQA
                 layerToAdd.definition_query = definitionQuery
                 try:
                     arcpy.SelectLayerByAttribute_management(layerToAdd,
@@ -608,16 +647,14 @@ class MapChef:
                     self.aprx.save()
 
             if (mapResult.added is True):
-                arc_data_frame = arcpy.mapping.ListDataFrames(self.aprx, recipe_frame.name)[0]
                 # TODO add proper fix for applyZoom in line with these two cards
                 # https: // trello.com/c/Bs70ru1s/145-design-criteria-for-selecting-zoom-extent
                 # https://trello.com/c/piE3tKRp/146-implenment-rules-for-selection-zoom-extent
                 # self.applyZoom(self.dataFrame, layerToAdd, cookBookLayer.get('zoomMultiplier', 0))
-                self.applyZoom(arc_data_frame, layerToAdd, 0)
+                # SAH self.applyZoom(arc_data_frame, layerToAdd, 0)
 
-                if layerProperties.add_to_legend is False:
-                    self.legendEntriesToRemove.append(layerToAdd.name)
-                arcpy.mapping.AddLayer(arc_data_frame, layerToAdd, "BOTTOM")
+                m = self.aprx.listMaps((recipe_frame.name.replace(" Map Frame", "") + "*"))
+                m[0].addLayer(layerToAdd, "BOTTOM")
                 self.aprx.save()
                 break
 
