@@ -32,7 +32,7 @@ def main(args):
                     "layers": [
                         {
                             "name": "mainmap-stle-stl-pt-s0-allmaps",
-                            "reg_exp": "^dji_stle_stl_pt_(.*?)_(.*?)_([phm][phm])(.*?).shp$",
+                            "reg_exp": "^[a-z][a-z][a-z]_stle_stl_pt_(.*?)_(.*?)_([phm][phm])(.*?).shp$",
                             "schema_definition": "stle_ste_pt.yml",
                             "definition_query": "fclass IN ('national_capital', 'city', 'capital', 'town')",
                             "display": true,
@@ -51,6 +51,33 @@ def main(args):
                                     "show_class_labels": true
                                 }
                             ]
+                        },
+                        {
+                            "name": "mainmap-carto-fea-py-s0-allmaps",
+                            "reg_exp": "^[a-z][a-z][a-z]_carto_fea_py_(.*?)_(.*?)_([phm][phm])(.*?).shp$",
+                            "schema_definition": "null-schema.yml",
+                            "definition_query": "",
+                            "display": true,
+                            "add_to_legend": false,
+                            "label_classes": []
+                        },
+                        {
+                            "name": "mainmap-admn-ad1-ln-s0-reference",
+                            "reg_exp": "^[a-z][a-z][a-z]_admn_ad1_ln_(.*?)_(.*?)_([phm][phm])(.*?).shp$",
+                            "schema_definition": "admin1_reference.yml",
+                            "definition_query": "",
+                            "display": true,
+                            "add_to_legend": true,
+                            "label_classes": []
+                        },
+                        {
+                            "name": "mainmap-admn-ad1-py-s0-reference",
+                            "reg_exp": "^[a-z][a-z][a-z]_admn_ad1_py_(.*?)_(.*?)_([phm][phm])(.*?).shp$",
+                            "schema_definition": "admin1_reference.yml",
+                            "definition_query": "",
+                            "display": true,
+                            "add_to_legend": true,
+                            "label_classes": []
                         }
                     ]
                 }

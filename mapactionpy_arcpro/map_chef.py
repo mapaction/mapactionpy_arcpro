@@ -183,22 +183,9 @@ class MapChef:
                     print(layer.name + "/" + mf.name)
                     self.process_layer(layer, mf)
 
-        # Set map in map-frame:
-        lyt = self.aprx.listLayouts("*")[0]
-        mainMapFrame = lyt.listElements("mapframe_element", "Main map*")[0]
-        mainMap = self.aprx.listMaps("Main map*")[0]
-        mainMapFrame.map = mainMap
-        mainMapFrame.zoomToAllLayers()
-        self.aprx.save()
-        for lyr in mainMap.listLayers():
-            if (lyr.name == "mainmap-admn-ad1-py-s0-reference"):
-                arcpy.SelectLayerByAttribute_management(lyr, "NEW_SELECTION", "1=1")
-                mainMapFrame.camera.setExtent(mainMapFrame.getLayerExtent(lyr, True, True))
-                mainMapFrame.zoomToAllLayers()
-                break
+        self.zoomToCountry()
 
         self.enableLayers()
-        # arcpy.RefreshTOC()
         arcpy.env.addOutputsToMap = True
         self.aprx.save()
 
@@ -707,3 +694,18 @@ class MapChef:
                     break
 
         return mapResult
+
+    def zoomToCountry(self):
+        # Set map in map-frame:
+        lyt = self.aprx.listLayouts("*")[0]
+        mainMapFrame = lyt.listElements("mapframe_element", "Main map*")[0]
+        mainMap = self.aprx.listMaps("Main map*")[0]
+        mainMapFrame.map = mainMap
+        mainMapFrame.zoomToAllLayers()
+        self.aprx.save()
+        for lyr in mainMap.listLayers():
+            if (lyr.name == "mainmap-admn-ad1-py-s0-reference"):
+                arcpy.SelectLayerByAttribute_management(lyr, "NEW_SELECTION", "1=1")
+                mainMapFrame.camera.setExtent(mainMapFrame.getLayerExtent(lyr, True, True))
+                mainMapFrame.zoomToAllLayers()
+                break
