@@ -49,7 +49,7 @@ setup(name='mapactionpy_arcpro',
       install_requires=[
           'mapactionpy_controller',
           'argparse',
-          'slugify',
+          'python-slugify',
           'jsonpickle',
           'Pillow',
           'python-resize-image'
@@ -59,7 +59,7 @@ setup(name='mapactionpy_arcpro',
       zip_safe=False,
       classifiers=[
           "Development Status :: 5 - Production/Stable",
-          "Programming Language :: Python :: 3",
+          "Programming Language :: Python :: 3.6.10",
           "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
           "Operating System :: Microsoft :: Windows",
       ])

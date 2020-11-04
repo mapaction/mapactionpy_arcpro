@@ -10,7 +10,7 @@ from shutil import copyfile
 from PIL import Image
 from resizeimage import resizeimage
 from slugify import slugify
-from map_chef import MapChef
+from mapactionpy_arcpro.map_chef import MapChef
 from mapactionpy_controller.xml_exporter import XmlExporter
 from mapactionpy_controller.plugin_base import BaseRunnerPlugin
 # from mapactionpy_controller.crash_move_folder import CrashMoveFolder
