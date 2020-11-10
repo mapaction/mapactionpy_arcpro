@@ -130,7 +130,8 @@ def main(args):
     themes = set()
     themes.add("Health")
     propertiesDict = {}
-#    propertiesDict['themes'] = themes
+    propertiesDict['themes'] = themes
+    propertiesDict['accessnotes'] = "My super access note"
     recipe = runner.export_maps(state=recipe, properties=propertiesDict)
 
 

@@ -170,6 +170,7 @@ class ArcProRunner(BaseRunnerPlugin):
         productType = "mapsheet"
         export_params["productType"] = productType
         export_params['themes'] = export_params.get('themes', set())
+        export_params['accessnotes'] = export_params.get('accessnotes', "")
         export_params['pdfFileLocation'] = self.exportPdf(core_file_name, export_dir, arc_aprx, export_params)
         export_params['jpgFileLocation'] = self.exportJpeg(core_file_name, export_dir, arc_aprx, export_params)
         export_params['pngThumbNailFileLocation'] = self.exportPngThumbNail(
