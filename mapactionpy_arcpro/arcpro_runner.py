@@ -169,7 +169,8 @@ class ArcProRunner(BaseRunnerPlugin):
         export_params["coreFileName"] = core_file_name
         productType = "mapsheet"
         export_params["productType"] = productType
-
+        export_params['themes'] = export_params.get('themes', set())
+        export_params['accessnotes'] = export_params.get('accessnotes', "")
         export_params['pdfFileLocation'] = self.exportPdf(core_file_name, export_dir, arc_aprx, export_params)
         export_params['jpgFileLocation'] = self.exportJpeg(core_file_name, export_dir, arc_aprx, export_params)
         export_params['pngThumbNailFileLocation'] = self.exportPngThumbNail(
@@ -187,7 +188,6 @@ class ArcProRunner(BaseRunnerPlugin):
         export_params["ymin"] = self.miny
         export_params["xmax"] = self.maxx
         export_params["ymax"] = self.maxy
-        export_params["themes"] = "None"
         export_params['exportXmlFileLocation'] = xmlExporter.write(export_params)
 
         return export_params

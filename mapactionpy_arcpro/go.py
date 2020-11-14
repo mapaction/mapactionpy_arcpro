@@ -62,6 +62,24 @@ def main(args):
                             "label_classes": []
                         },
                         {
+                            "name": "mainmap-elev-cst-ln-s0-allmaps",
+                            "reg_exp": "^[a-z][a-z][a-z]_elev_cst_ln_(.*?)_(.*?)_([phm][phm])(.*?).shp$",
+                            "schema_definition": "null-schema.yml",
+                            "definition_query": "",
+                            "display": true,
+                            "add_to_legend": false,
+                            "label_classes": []
+                        },
+                        {
+                            "name": "mainmap-admn-ad0-ln-s0-reference",
+                            "reg_exp": "^[a-z][a-z][a-z]_admn_ad0_ln_(.*?)_(.*?)_([phm][phm])(.*?).shp$",
+                            "schema_definition": "null-schema.yml",
+                            "definition_query": "",
+                            "display": true,
+                            "add_to_legend": false,
+                            "label_classes": []
+                        },
+                        {
                             "name": "mainmap-admn-ad1-ln-s0-reference",
                             "reg_exp": "^[a-z][a-z][a-z]_admn_ad1_ln_(.*?)_(.*?)_([phm][phm])(.*?).shp$",
                             "schema_definition": "admin1_reference.yml",
@@ -71,9 +89,27 @@ def main(args):
                             "label_classes": []
                         },
                         {
+                            "name": "mainmap-phys-riv-ln-s0-reference",
+                            "reg_exp": "^[a-z][a-z][a-z]_phys_riv_ln_(.*?)_(.*?)_([phm][phm])(.*?).shp$",
+                            "schema_definition": "null-schema.yml",
+                            "definition_query": "",
+                            "display": true,
+                            "add_to_legend": true,
+                            "label_classes": []
+                        },
+                        {
                             "name": "mainmap-admn-ad1-py-s0-reference",
                             "reg_exp": "^[a-z][a-z][a-z]_admn_ad1_py_(.*?)_(.*?)_([phm][phm])(.*?).shp$",
                             "schema_definition": "admin1_reference.yml",
+                            "definition_query": "",
+                            "display": true,
+                            "add_to_legend": true,
+                            "label_classes": []
+                        },
+                        {
+                            "name": "mainmap-admn-ad0-ln-s0-surroundingcountries",
+                            "reg_exp": "^[a-z][a-z][a-z]_admn_ad0_ln_(.*?)_(.*?)_([phm][phm])(.*?).shp$",
+                            "schema_definition": "null-schema.yml",
                             "definition_query": "",
                             "display": true,
                             "add_to_legend": true,
@@ -90,7 +126,13 @@ def main(args):
     recipe = runner.get_templates(state=recipe)
     recipe = runner.create_ouput_map_project(state=recipe)
     recipe = runner.build_project_files(state=recipe)
-    recipe = runner.export_maps(state=recipe)
+
+    themes = set()
+    themes.add("Health")
+    propertiesDict = {}
+    propertiesDict['themes'] = themes
+    propertiesDict['accessnotes'] = "My super access note"
+    recipe = runner.export_maps(state=recipe, properties=propertiesDict)
 
 
 if __name__ == '__main__':
