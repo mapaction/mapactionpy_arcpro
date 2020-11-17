@@ -1,19 +1,13 @@
 import arcpy
 import logging
 import os
-# import errno
-# import glob
-# from operator import itemgetter
-# import re
 from shutil import copyfile
-# from zipfile import ZipFile
 from PIL import Image
 from resizeimage import resizeimage
 from slugify import slugify
 from mapactionpy_arcpro.map_chef import MapChef
 from mapactionpy_controller.xml_exporter import XmlExporter
 from mapactionpy_controller.plugin_base import BaseRunnerPlugin
-# from mapactionpy_controller.crash_move_folder import CrashMoveFolder
 
 logging.basicConfig(
     level=logging.INFO,
@@ -169,10 +163,15 @@ class ArcProRunner(BaseRunnerPlugin):
         export_params["coreFileName"] = core_file_name
         productType = "mapsheet"
         export_params["productType"] = productType
+
         export_params['themes'] = export_params.get('themes', set())
         export_params['accessnotes'] = export_params.get('accessnotes', "")
         export_params['pdfFileLocation'] = self.exportPdf(core_file_name, export_dir, arc_aprx, export_params)
         export_params['jpgFileLocation'] = self.exportJpeg(core_file_name, export_dir, arc_aprx, export_params)
+
+        export_params['emfFileLocation'] = ""
+        if (export_params.get("exportemf", False)):
+            export_params['emfFileLocation'] = self.exportEmf(core_file_name, export_dir, arc_aprx, export_params)
         export_params['pngThumbNailFileLocation'] = self.exportPngThumbNail(
             core_file_name, export_dir, arc_aprx, export_params)
 
@@ -329,6 +328,19 @@ class ArcProRunner(BaseRunnerPlugin):
         pdfFileSize = os.path.getsize(pdfFileLocation)
         exportParams["pdfFileSize"] = pdfFileSize
         return pdfFileLocation
+
+    def exportEmf(self, coreFileName, exportDirectory, aprx, exportParams):
+        # EMF
+        emfFileName = coreFileName+"-"+str(self.hum_event.default_emf_res_dpi) + "dpi.emf"
+        emfFileLocation = os.path.join(exportDirectory, emfFileName)
+        exportParams["emfFileName"] = emfFileName
+
+        Layout = aprx.listLayouts()[0]
+        Layout.exportToEMF(emfFileLocation, resolution=int(self.hum_event.default_emf_res_dpi))
+
+        emfFileSize = os.path.getsize(emfFileLocation)
+        exportParams["emfFileSize"] = emfFileSize
+        return emfFileLocation
 
     def exportPngThumbNail(self, coreFileName, exportDirectory, aprx, exportParams):
         # PNG Thumbnail.  Need to create a larger image first.
