@@ -4,17 +4,17 @@ dist: xenial
 jobs:
   include:
     # This is the target environment
-    - name: "Python 2.7 on Windows"
+    - name: "Python 3.6 on Windows"
       os: windows           # Windows 10.0.17134 N/A Build 17134
       language: shell       # 'language: python' is an error on Travis CI Windows
       before_install:
-        - choco install python2
+        - choco install python3
         - python -m pip install --upgrade pip
         - pip install mock
-      env: PATH=/c/Python27:/c/Python27/Scripts:$PATH
+      env: PATH=/c/Python36:/c/Python36/Scripts:$PATH
     # Only required becuase deployto to PyPi appears to work better on a linux VM.
-    - name: "Python 2.7 on Xenial Linux"
-      python: 2.7
+    - name: "Python 3.6 on Xenial Linux"
+      python: 3.6
   allow_failures:
     # None of the jobs below matter. They are included as a measure of how much work
     # might be required at a future date to port this package to a different target GIS,
