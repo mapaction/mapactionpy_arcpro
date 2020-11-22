@@ -297,8 +297,10 @@ class ArcProRunner(BaseRunnerPlugin):
             # Clear selection, otherwise the selected feature is highlighted in the exported map
             arcpy.SelectLayerByAttribute_management(arc_lyr, "CLEAR_SELECTION")
             # Export to PDF
+            # pdfFileName = core_file_name + "-" + \
+            #     slugify(unicode(region)) + "-" + str(self.hum_event.default_pdf_res_dpi) + "dpi.pdf"
             pdfFileName = core_file_name + "-" + \
-                slugify(unicode(region)) + "-" + str(self.hum_event.default_pdf_res_dpi) + "dpi.pdf"
+                slugify(region) + "-" + str(self.hum_event.default_pdf_res_dpi) + "dpi.pdf"
             pdfFileLocation = os.path.join(export_dir, pdfFileName)
 
             arcpy.mapping.ExportToPDF(arc_mxd, pdfFileLocation, resolution=int(self.hum_event.default_pdf_res_dpi))
