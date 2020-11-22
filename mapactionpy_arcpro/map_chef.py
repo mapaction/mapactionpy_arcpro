@@ -280,16 +280,14 @@ class MapChef:
         """
         mapResult = MapResult(recipe_lyr.name)
         lyt = self.aprx.listLayouts("*")[0]
-        # arc_data_frame = lyt.listElements("MAPFRAME_ELEMENT", recipe_frame.name)[0]
         arc_data_frame = lyt.listElements("MAPFRAME_ELEMENT", (recipe_frame.name + "*"))[0]
 
-        # arc_data_frame = arcpy.mapping.ListDataFrames(self.aprx, recipe_frame.name)[0]
         try:
             # BUG
             # The layer name in the TOC is not necessarily == recipe_lyr.name
             # arc_lyr_to_update = arcpy.mapping.ListLayers(self.aprx, recipe_lyr.name, self.dataFrame)[0]
             # Try this instead
-            lyr_index = recipe_frame.layers.index(recipe_lyr)
+            # lyr_index = recipe_frame.layers.index(recipe_lyr)
 
             # arc_lyr_to_update = None
             # for m in self.aprx.listMaps("*"):
@@ -306,21 +304,6 @@ class MapChef:
         except IndexError:
             # Layer doesn't exist, add new layer
             mapResult = self.addLayer(recipe_lyr, arc_data_frame)
-
-        # if mapResult.added:
-            # try:
-                # Seperate the next two lines so that the cause of any exceptions is more easily
-                # appartent from the stack trace.
-                # BUG
-                # The layer name in the TOC is not necessarily == recipe_lyr.name
-                # lyr_list = arcpy.mapping.ListLayers(self.aprx, recipe_lyr.name, self.dataFrame)
-                # new_layer = lyr_list[0]
-                # Try this instead
-                # lyr_index = recipe_frame.layers.index(recipe_lyr)
-                # new_layer = arcpy.mapping.ListLayers(self.aprx, None, arc_data_frame)[lyr_index]
-                # self.applyZoom(arc_data_frame, new_layer, 0)
-            # except IndexError:
-                # pass
 
         self.mapReport.add(mapResult)
 
