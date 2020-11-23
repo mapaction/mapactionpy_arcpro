@@ -24,6 +24,10 @@ install:
 - pip install -r requirements-dev.txt
 - pip install python-coveralls
 - pip install .
+- echo $TRAVIS_OS_NAME
+- echo $TRAVIS_BRANCH
+- echo $TRAVIS_TAG
+
 script:
 - flake8
 deploy:
