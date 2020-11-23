@@ -1,5 +1,5 @@
 language: python
-os: linux
+os: windows
 dist: xenial
 jobs:
   include:
@@ -24,6 +24,7 @@ install:
 - pip install -r requirements-dev.txt
 - pip install python-coveralls
 - pip install .
+
 script:
 - flake8
 deploy:
@@ -36,4 +37,4 @@ deploy:
   cleanup: false
   on:
     all_branches: true
-    condition: ${TRAVIS_OS_NAME,,} =~ ^linux$ && ${TRAVIS_BRANCH,,} =~ ^(master|${TRAVIS_TAG,,})$
+    condition: ${TRAVIS_OS_NAME,,} =~ ^windows$ && ${TRAVIS_BRANCH,,} =~ ^(master|${TRAVIS_TAG,,})$
