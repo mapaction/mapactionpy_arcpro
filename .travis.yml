@@ -35,4 +35,4 @@ deploy:
   cleanup: false
   on:
     all_branches: true
-    condition: "${TRAVIS_OS_NAME,,} =~ ^linux$ && ${TRAVIS_BRANCH,,} =~ ^(master|${TRAVIS_TAG,,})$0"
+    condition: ${TRAVIS_OS_NAME,,} =~ ^linux$ && ${TRAVIS_BRANCH,,} =~ ^(master|${TRAVIS_TAG,,})$
