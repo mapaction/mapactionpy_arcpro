@@ -59,7 +59,7 @@ setup(name='mapactionpy_arcpro',
       zip_safe=False,
       classifiers=[
           "Development Status :: 5 - Production/Stable",
-          "Programming Language :: Python :: 3.6.10",
+          "Programming Language :: Python :: 3.6",
           "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
           "Operating System :: Microsoft :: Windows",
       ])
