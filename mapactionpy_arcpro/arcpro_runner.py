@@ -309,23 +309,23 @@ class ArcProRunner(BaseRunnerPlugin):
 
     def exportJpeg(self, coreFileName, exportDirectory, aprx, exportParams):
         # JPEG
-        jpgFileName = coreFileName+"-"+str(self.hum_event.default_jpeg_res_dpi) + "dpi.jpg"
+        jpgFileName = coreFileName + "-" + exportParams.get("jpgresolutiondpi", str(self.hum_event.default_jpeg_res_dpi)) + "dpi.jpg"
         jpgFileLocation = os.path.join(exportDirectory, jpgFileName)
         exportParams["jpgFileName"] = jpgFileName
         Layout = aprx.listLayouts()[0]
-        Layout.exportToJPEG(jpgFileLocation)
+        Layout.exportToJPEG(jpgFileLocation, resolution=int(exportParams.get("jpgresolutiondpi", str(self.hum_event.default_jpeg_res_dpi))))
         jpgFileSize = os.path.getsize(jpgFileLocation)
         exportParams["jpgFileSize"] = jpgFileSize
         return jpgFileLocation
 
     def exportPdf(self, coreFileName, exportDirectory, aprx, exportParams):
         # PDF
-        pdfFileName = coreFileName+"-"+str(self.hum_event.default_pdf_res_dpi) + "dpi.pdf"
+        pdfFileName = coreFileName + "-" + exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
         pdfFileLocation = os.path.join(exportDirectory, pdfFileName)
         exportParams["pdfFileName"] = pdfFileName
 
         Layout = aprx.listLayouts()[0]
-        Layout.exportToPDF(pdfFileLocation, resolution=int(self.hum_event.default_pdf_res_dpi))
+        Layout.exportToPDF(pdfFileLocation, resolution=int(exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
 
         pdfFileSize = os.path.getsize(pdfFileLocation)
         exportParams["pdfFileSize"] = pdfFileSize
@@ -333,12 +333,12 @@ class ArcProRunner(BaseRunnerPlugin):
 
     def exportEmf(self, coreFileName, exportDirectory, aprx, exportParams):
         # EMF
-        emfFileName = coreFileName+"-"+str(self.hum_event.default_emf_res_dpi) + "dpi.emf"
+        emfFileName = coreFileName + "-" + exportParams.get("emfresolutiondpi", str(self.hum_event.default_emf_res_dpi)) + "dpi.emf"
         emfFileLocation = os.path.join(exportDirectory, emfFileName)
         exportParams["emfFileName"] = emfFileName
 
         Layout = aprx.listLayouts()[0]
-        Layout.exportToEMF(emfFileLocation, resolution=int(self.hum_event.default_emf_res_dpi))
+        Layout.exportToEMF(emfFileLocation, resolution=int(exportParams.get("emfresolutiondpi", str(self.hum_event.default_emf_res_dpi))))
 
         emfFileSize = os.path.getsize(emfFileLocation)
         exportParams["emfFileSize"] = emfFileSize
