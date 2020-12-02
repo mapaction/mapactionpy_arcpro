@@ -339,7 +339,7 @@ class ArcProRunner(BaseRunnerPlugin):
                         seriesPdfFileLocation = os.path.join(exportDirectory, seriesPdfFileName)
                         ms.exportToPDF(seriesPdfFileLocation, "CURRENT", resolution=int(exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
                 else:
-                    seriesPdfFileName = coreFileName + "-mapbook-" + "-" + exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
+                    seriesPdfFileName = coreFileName + "-mapbook-" + exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
                     seriesPdfFileLocation = os.path.join(exportDirectory, seriesPdfFileName)
                     ms.exportToPDF(seriesPdfFileLocation, "ALL", resolution=int(exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
 
