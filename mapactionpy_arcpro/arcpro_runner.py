@@ -161,8 +161,7 @@ class ArcProRunner(BaseRunnerPlugin):
 
         core_file_name = os.path.splitext(os.path.basename(recipe.map_project_path))[0]
         export_params["coreFileName"] = core_file_name
-        productType = "mapsheet"
-        export_params["productType"] = productType
+        export_params["productType"] = export_params.get('productType', "mapsheet")
 
         export_params['themes'] = export_params.get('themes', set())
         export_params['accessnotes'] = export_params.get('accessnotes', "")
@@ -325,7 +324,27 @@ class ArcProRunner(BaseRunnerPlugin):
         exportParams["pdfFileName"] = pdfFileName
 
         Layout = aprx.listLayouts()[0]
-        Layout.exportToPDF(pdfFileLocation, resolution=int(exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
+        # https://pro.arcgis.com/en/pro-app/arcpy/mapping/mapseries-class.htm
+
+        # exports only the selected pages to a single, multipage PDF file:
+        if not Layout.mapSeries is None:
+            ms = Layout.mapSeries
+            if ms.enabled and (exportParams['productType'] == "atlas"):
+                # fields = arcpy.ListFields(fc, 'Flag')
+                if (exportParams.get("mapBookMode", "Multiple PDF Files") == "Multiple PDF Files"):
+                    for pageNum in range(1, ms.pageCount + 1):
+                        ms.currentPageNumber = pageNum
+                        seriesMapName = slugify(getattr(ms.pageRow, ms.pageNameField.name))
+                        seriesPdfFileName = coreFileName + "-mapbook-" + seriesMapName + "-" + exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
+                        seriesPdfFileLocation = os.path.join(exportDirectory, seriesPdfFileName)
+                        ms.exportToPDF(seriesPdfFileLocation, "CURRENT", resolution=int(exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
+                else:
+                    seriesPdfFileName = coreFileName + "-mapbook-" + "-" + exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
+                    seriesPdfFileLocation = os.path.join(exportDirectory, seriesPdfFileName)
+                    ms.exportToPDF(seriesPdfFileLocation, "ALL", resolution=int(exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
+
+        Layout.exportToPDF(pdfFileLocation, resolution=int(exportParams.get("pdfresolutiondpi",
+            str(self.hum_event.default_pdf_res_dpi))))
 
         pdfFileSize = os.path.getsize(pdfFileLocation)
         exportParams["pdfFileSize"] = pdfFileSize
