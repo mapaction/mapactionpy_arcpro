@@ -60,6 +60,13 @@ class ArcProRunner(BaseRunnerPlugin):
     def get_lyr_render_extension(self):
         return '.lyr'
 
+    def get_text_elements(self, layout):
+        # https://pro.arcgis.com/en/pro-app/arcpy/mapping/textelement-class.htm
+        text_element_dict = {}
+        for elm in layout.listElements("TEXT_ELEMENT", "*"):
+            text_element_dict[elm.name] = elm.text
+        return text_element_dict
+
     def _get_largest_map_frame(self, data_frames):
         """
         This returns the dataframe occupying the largest area on the page.
@@ -160,6 +167,16 @@ class ArcProRunner(BaseRunnerPlugin):
         export_dir = export_params["exportDirectory"]
         arc_aprx = arcpy.mp.ArcGISProject(recipe.map_project_path)
 
+        lyt = arc_aprx.listLayouts(export_params["layout"])[0]
+
+        text_element_dict = self.get_text_elements(lyt)
+
+        export_params["summary"] = text_element_dict.get('summary', recipe.summary)
+        export_params["datasource"] = text_element_dict.get('data_sources', "")
+        export_params["datum"] = text_element_dict.get('spatial_reference', "")
+        export_params["title"] = text_element_dict.get('title', "")
+        export_params["timezone"] = text_element_dict.get('timezone', self.hum_event.time_zone)
+
         core_file_name = os.path.splitext(os.path.basename(recipe.map_project_path))[0]
         export_params["coreFileName"] = core_file_name
         export_params["productType"] = export_params.get('productType', "mapsheet")
@@ -184,7 +201,8 @@ class ArcProRunner(BaseRunnerPlugin):
 
         maxWidth = 0
         maxHeight = 0
-        # Get the map view
+
+        # Get the extents of the largest "map"
         for map in (arc_aprx.listMaps()):
             extent = map.defaultView.camera.getExtent()
             if (extent.height > maxHeight) and (extent.width > maxWidth):
@@ -199,7 +217,6 @@ class ArcProRunner(BaseRunnerPlugin):
         export_params['mapNumber'] = recipe.mapnumber
         export_params['productName'] = recipe.product
         export_params['versionNumber'] = recipe.version_num
-        export_params['summary'] = recipe.summary
         export_params['exportXmlFileLocation'] = xmlExporter.write(export_params)
 
         return export_params
