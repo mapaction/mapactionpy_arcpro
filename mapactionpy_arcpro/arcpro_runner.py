@@ -8,6 +8,7 @@ from slugify import slugify
 from mapactionpy_arcpro.map_chef import MapChef
 from mapactionpy_controller.xml_exporter import XmlExporter
 from mapactionpy_controller.plugin_base import BaseRunnerPlugin
+from datetime import datetime
 
 logging.basicConfig(
     level=logging.INFO,
@@ -163,6 +164,10 @@ class ArcProRunner(BaseRunnerPlugin):
         export_params["coreFileName"] = core_file_name
         export_params["productType"] = export_params.get('productType', "mapsheet")
 
+        now = datetime.now()
+        export_params["createdate"] = now.strftime("%Y-%m-%d %H:%M:%S")
+        export_params["createtime"] = now.strftime("%H:%M")
+
         export_params['themes'] = export_params.get('themes', set())
         export_params['accessnotes'] = export_params.get('accessnotes', "")
         export_params['pdfFileLocation'] = self.exportPdf(core_file_name, export_dir, arc_aprx, export_params)
@@ -177,15 +182,24 @@ class ArcProRunner(BaseRunnerPlugin):
         if recipe.atlas:
             self._export_atlas(recipe, arc_aprx, export_dir, core_file_name)
 
+        maxWidth = 0
+        maxHeight = 0
+        # Get the map view
+        for map in (arc_aprx.listMaps()):
+            extent = map.defaultView.camera.getExtent()
+            if (extent.height > maxHeight) and (extent.width > maxWidth):
+                maxWidth = extent.width
+                maxHeight = extent.height
+                export_params["xmin"] = round(extent.XMin, 2)
+                export_params["ymin"] = round(extent.YMin, 2)
+                export_params["xmax"] = round(extent.XMax, 2)
+                export_params["ymax"] = round(extent.YMax, 2)
+
         xmlExporter = XmlExporter(self.hum_event, self.chef)
         export_params['mapNumber'] = recipe.mapnumber
         export_params['productName'] = recipe.product
         export_params['versionNumber'] = recipe.version_num
         export_params['summary'] = recipe.summary
-        export_params["xmin"] = self.minx
-        export_params["ymin"] = self.miny
-        export_params["xmax"] = self.maxx
-        export_params["ymax"] = self.maxy
         export_params['exportXmlFileLocation'] = xmlExporter.write(export_params)
 
         return export_params
@@ -339,7 +353,7 @@ class ArcProRunner(BaseRunnerPlugin):
                         seriesPdfFileLocation = os.path.join(exportDirectory, seriesPdfFileName)
                         ms.exportToPDF(seriesPdfFileLocation, "CURRENT", resolution=int(exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
                 else:
-                    seriesPdfFileName = coreFileName + "-mapbook-" + "-" + exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
+                    seriesPdfFileName = coreFileName + "-mapbook-" + exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
                     seriesPdfFileLocation = os.path.join(exportDirectory, seriesPdfFileName)
                     ms.exportToPDF(seriesPdfFileLocation, "ALL", resolution=int(exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
 
