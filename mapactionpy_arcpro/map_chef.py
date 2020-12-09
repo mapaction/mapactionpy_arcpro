@@ -357,7 +357,8 @@ class MapChef:
             if elm.name == "summary":
                 elm.text = self.summary
             if elm.name == "map_no":
-                elm.text = self.recipe.mapnumber
+                versionNumberString = "v" + str(self.recipe.version_num).zfill(2)
+                elm.text = self.recipe.mapnumber + " " + versionNumberString
             if elm.name == "mxd_name":
                 elm.text = os.path.basename(self.aprx.filePath)
             if elm.name == "scale":
@@ -371,9 +372,6 @@ class MapChef:
                     dataSourcesString = dataSourcesString + ds
                     iter = iter + 1
                 elm.text = dataSourcesString
-            if elm.name == "map_version":
-                versionNumberString = "v" + str(self.recipe.version_num).zfill(2)
-                elm.text = versionNumberString
             if elm.name == "spatial_reference":
                 elm.text = self.spatialReference()
             if elm.name == "glide_no":
