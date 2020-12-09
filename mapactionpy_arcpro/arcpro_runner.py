@@ -114,7 +114,7 @@ class ArcProRunner(BaseRunnerPlugin):
         logging.debug('Calculating the aspect ratio of the largest map frame within the list of templates.')
         results = []
 
-        aprxPath = os.path.join(self.cmf.map_templates, 'blank.aprx')
+        aprxPath = os.path.join(self.cmf.map_templates, 'pro-2.5-blank-project.aprx')
         aprx = arcpy.mp.ArcGISProject(aprxPath)
 
         layoutIndex = 0
@@ -167,7 +167,7 @@ class ArcProRunner(BaseRunnerPlugin):
         export_dir = export_params["exportDirectory"]
         arc_aprx = arcpy.mp.ArcGISProject(recipe.map_project_path)
 
-        lyt = arc_aprx.listLayouts(export_params["layout"])[0]
+        lyt = arc_aprx.listLayouts(export_params.get("layout", None))[0]
 
         text_element_dict = self.get_text_elements(lyt)
 
@@ -450,7 +450,7 @@ class ArcProRunner(BaseRunnerPlugin):
             recipe.mapnumber, str(recipe.version_num).zfill(2), output_map_base, self.get_projectfile_extension())
 
         # Copy `src_template` to `recipe.map_project_path`
-        aprxPath = os.path.join(self.cmf.map_templates, 'blank.aprx')
+        aprxPath = os.path.join(self.cmf.map_templates, 'pro-2.5-blank-project.aprx')
         copyfile(aprxPath, recipe.map_project_path)
 
         logger.debug('Import template path; {}'.format(recipe.template_path))
