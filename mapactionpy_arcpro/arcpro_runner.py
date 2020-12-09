@@ -60,6 +60,13 @@ class ArcProRunner(BaseRunnerPlugin):
     def get_lyr_render_extension(self):
         return '.lyr'
 
+    def get_text_elements(self, layout):
+        # https://pro.arcgis.com/en/pro-app/arcpy/mapping/textelement-class.htm
+        text_element_dict = {}
+        for elm in layout.listElements("TEXT_ELEMENT", "*"):
+            text_element_dict[elm.name] = elm.text
+        return text_element_dict
+
     def _get_largest_map_frame(self, data_frames):
         """
         This returns the dataframe occupying the largest area on the page.
@@ -107,7 +114,7 @@ class ArcProRunner(BaseRunnerPlugin):
         logging.debug('Calculating the aspect ratio of the largest map frame within the list of templates.')
         results = []
 
-        aprxPath = os.path.join(self.cmf.map_templates, 'blank.aprx')
+        aprxPath = os.path.join(self.cmf.map_templates, 'pro-2.5-blank-project.aprx')
         aprx = arcpy.mp.ArcGISProject(aprxPath)
 
         layoutIndex = 0
@@ -160,6 +167,16 @@ class ArcProRunner(BaseRunnerPlugin):
         export_dir = export_params["exportDirectory"]
         arc_aprx = arcpy.mp.ArcGISProject(recipe.map_project_path)
 
+        lyt = arc_aprx.listLayouts(export_params.get("layout", None))[0]
+
+        text_element_dict = self.get_text_elements(lyt)
+
+        export_params["summary"] = text_element_dict.get('summary', recipe.summary)
+        export_params["datasource"] = text_element_dict.get('data_sources', "")
+        export_params["datum"] = text_element_dict.get('spatial_reference', "")
+        export_params["title"] = text_element_dict.get('title', "")
+        export_params["timezone"] = text_element_dict.get('timezone', self.hum_event.time_zone)
+
         core_file_name = os.path.splitext(os.path.basename(recipe.map_project_path))[0]
         export_params["coreFileName"] = core_file_name
         export_params["productType"] = export_params.get('productType', "mapsheet")
@@ -184,7 +201,8 @@ class ArcProRunner(BaseRunnerPlugin):
 
         maxWidth = 0
         maxHeight = 0
-        # Get the map view
+
+        # Get the extents of the largest "map"
         for map in (arc_aprx.listMaps()):
             extent = map.defaultView.camera.getExtent()
             if (extent.height > maxHeight) and (extent.width > maxWidth):
@@ -199,7 +217,6 @@ class ArcProRunner(BaseRunnerPlugin):
         export_params['mapNumber'] = recipe.mapnumber
         export_params['productName'] = recipe.product
         export_params['versionNumber'] = recipe.version_num
-        export_params['summary'] = recipe.summary
         export_params['exportXmlFileLocation'] = xmlExporter.write(export_params)
 
         return export_params
@@ -322,18 +339,22 @@ class ArcProRunner(BaseRunnerPlugin):
 
     def exportJpeg(self, coreFileName, exportDirectory, aprx, exportParams):
         # JPEG
-        jpgFileName = coreFileName + "-" + exportParams.get("jpgresolutiondpi", str(self.hum_event.default_jpeg_res_dpi)) + "dpi.jpg"
+        jpgFileName = coreFileName + "-" + \
+            exportParams.get("jpgresolutiondpi", str(self.hum_event.default_jpeg_res_dpi)) + "dpi.jpg"
         jpgFileLocation = os.path.join(exportDirectory, jpgFileName)
         exportParams["jpgFileName"] = jpgFileName
         Layout = aprx.listLayouts()[0]
-        Layout.exportToJPEG(jpgFileLocation, resolution=int(exportParams.get("jpgresolutiondpi", str(self.hum_event.default_jpeg_res_dpi))))
+        Layout.exportToJPEG(jpgFileLocation, resolution=int(exportParams.get(
+            "jpgresolutiondpi", str(self.hum_event.default_jpeg_res_dpi))))
         jpgFileSize = os.path.getsize(jpgFileLocation)
         exportParams["jpgFileSize"] = jpgFileSize
         return jpgFileLocation
 
     def exportPdf(self, coreFileName, exportDirectory, aprx, exportParams):
         # PDF
-        pdfFileName = coreFileName + "-" + exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
+        pdfFileName = coreFileName + "-" + \
+            exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
+
         pdfFileLocation = os.path.join(exportDirectory, pdfFileName)
         exportParams["pdfFileName"] = pdfFileName
 
@@ -341,7 +362,7 @@ class ArcProRunner(BaseRunnerPlugin):
         # https://pro.arcgis.com/en/pro-app/arcpy/mapping/mapseries-class.htm
 
         # exports only the selected pages to a single, multipage PDF file:
-        if not Layout.mapSeries is None:
+        if Layout.mapSeries is not None:
             ms = Layout.mapSeries
             if ms.enabled and (exportParams['productType'] == "atlas"):
                 # fields = arcpy.ListFields(fc, 'Flag')
@@ -349,16 +370,20 @@ class ArcProRunner(BaseRunnerPlugin):
                     for pageNum in range(1, ms.pageCount + 1):
                         ms.currentPageNumber = pageNum
                         seriesMapName = slugify(getattr(ms.pageRow, ms.pageNameField.name))
-                        seriesPdfFileName = coreFileName + "-mapbook-" + seriesMapName + "-" + exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
+                        seriesPdfFileName = coreFileName + "-mapbook-" + seriesMapName + "-" + \
+                            exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
                         seriesPdfFileLocation = os.path.join(exportDirectory, seriesPdfFileName)
-                        ms.exportToPDF(seriesPdfFileLocation, "CURRENT", resolution=int(exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
+                        ms.exportToPDF(seriesPdfFileLocation, "CURRENT", resolution=int(
+                            exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
                 else:
-                    seriesPdfFileName = coreFileName + "-mapbook-" + exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
+                    seriesPdfFileName = coreFileName + "-mapbook-" + \
+                        exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
                     seriesPdfFileLocation = os.path.join(exportDirectory, seriesPdfFileName)
-                    ms.exportToPDF(seriesPdfFileLocation, "ALL", resolution=int(exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
+                    ms.exportToPDF(seriesPdfFileLocation, "ALL", resolution=int(
+                        exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
 
-        Layout.exportToPDF(pdfFileLocation, resolution=int(exportParams.get("pdfresolutiondpi",
-            str(self.hum_event.default_pdf_res_dpi))))
+        Layout.exportToPDF(pdfFileLocation, resolution=int(exportParams.get(
+            "pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
 
         pdfFileSize = os.path.getsize(pdfFileLocation)
         exportParams["pdfFileSize"] = pdfFileSize
@@ -366,12 +391,14 @@ class ArcProRunner(BaseRunnerPlugin):
 
     def exportEmf(self, coreFileName, exportDirectory, aprx, exportParams):
         # EMF
-        emfFileName = coreFileName + "-" + exportParams.get("emfresolutiondpi", str(self.hum_event.default_emf_res_dpi)) + "dpi.emf"
+        emfFileName = coreFileName + "-" + \
+            exportParams.get("emfresolutiondpi", str(self.hum_event.default_emf_res_dpi)) + "dpi.emf"
         emfFileLocation = os.path.join(exportDirectory, emfFileName)
         exportParams["emfFileName"] = emfFileName
 
         Layout = aprx.listLayouts()[0]
-        Layout.exportToEMF(emfFileLocation, resolution=int(exportParams.get("emfresolutiondpi", str(self.hum_event.default_emf_res_dpi))))
+        Layout.exportToEMF(emfFileLocation, resolution=int(exportParams.get(
+            "emfresolutiondpi", str(self.hum_event.default_emf_res_dpi))))
 
         emfFileSize = os.path.getsize(emfFileLocation)
         exportParams["emfFileSize"] = emfFileSize
@@ -423,7 +450,7 @@ class ArcProRunner(BaseRunnerPlugin):
             recipe.mapnumber, str(recipe.version_num).zfill(2), output_map_base, self.get_projectfile_extension())
 
         # Copy `src_template` to `recipe.map_project_path`
-        aprxPath = os.path.join(self.cmf.map_templates, 'blank.aprx')
+        aprxPath = os.path.join(self.cmf.map_templates, 'pro-2.5-blank-project.aprx')
         copyfile(aprxPath, recipe.map_project_path)
 
         logger.debug('Import template path; {}'.format(recipe.template_path))
