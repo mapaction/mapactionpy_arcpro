@@ -52,7 +52,8 @@ setup(name='mapactionpy_arcpro',
           'python-slugify',
           'jsonpickle',
           'Pillow',
-          'python-resize-image'
+          'python-resize-image',
+          'qrcode'
       ],
       test_suite='unittest',
       tests_require=['unittest'],
