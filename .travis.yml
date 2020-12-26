@@ -22,7 +22,7 @@ jobs:
 install:
 - pip install -r requirements-dev.txt
 - pip install python-coveralls
-- pip install .
+# - pip install .
 script:
 - flake8
 deploy:
