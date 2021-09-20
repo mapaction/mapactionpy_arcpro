@@ -343,7 +343,7 @@ class ArcProRunner(BaseRunnerPlugin):
             exportParams.get("jpgresolutiondpi", str(self.hum_event.default_jpeg_res_dpi)) + "dpi.jpg"
         jpgFileLocation = os.path.join(exportDirectory, jpgFileName)
         exportParams["jpgFileName"] = jpgFileName
-        Layout = aprx.listLayouts()[0]
+        Layout = aprx.listLayouts(exportParams.get("layout", None))[0]
         Layout.exportToJPEG(jpgFileLocation, resolution=int(exportParams.get(
             "jpgresolutiondpi", str(self.hum_event.default_jpeg_res_dpi))))
         jpgFileSize = os.path.getsize(jpgFileLocation)
@@ -358,7 +358,7 @@ class ArcProRunner(BaseRunnerPlugin):
         pdfFileLocation = os.path.join(exportDirectory, pdfFileName)
         exportParams["pdfFileName"] = pdfFileName
 
-        Layout = aprx.listLayouts()[0]
+        Layout = aprx.listLayouts(exportParams.get("layout", None))[0]
         # https://pro.arcgis.com/en/pro-app/arcpy/mapping/mapseries-class.htm
 
         # exports only the selected pages to a single, multipage PDF file:
@@ -396,7 +396,7 @@ class ArcProRunner(BaseRunnerPlugin):
         emfFileLocation = os.path.join(exportDirectory, emfFileName)
         exportParams["emfFileName"] = emfFileName
 
-        Layout = aprx.listLayouts()[0]
+        Layout = aprx.listLayouts(exportParams.get("layout", None))[0]
         Layout.exportToEMF(emfFileLocation, resolution=int(exportParams.get(
             "emfresolutiondpi", str(self.hum_event.default_emf_res_dpi))))
 
@@ -410,7 +410,7 @@ class ArcProRunner(BaseRunnerPlugin):
         pngTmpThumbNailFileName = "tmp-thumbnail.png"
         pngTmpThumbNailFileLocation = os.path.join(exportDirectory, pngTmpThumbNailFileName)
 
-        Layout = aprx.listLayouts()[0]
+        Layout = aprx.listLayouts(exportParams.get("layout", None))[0]
         Layout.exportToPNG(pngTmpThumbNailFileLocation)
 
         pngThumbNailFileName = "thumbnail.png"
