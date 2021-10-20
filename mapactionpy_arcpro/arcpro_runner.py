@@ -24,10 +24,12 @@ class ArcProRunner(BaseRunnerPlugin):
     """
 
     def __init__(self,
-                 hum_event):
+                 hum_event,
+                 useCurrent=False):
         super(ArcProRunner, self).__init__(hum_event)
 
         self.exportMap = False
+        self.useCurrent = useCurrent
         self.minx = 0
         self.miny = 0
         self.maxx = 0
@@ -165,7 +167,14 @@ class ArcProRunner(BaseRunnerPlugin):
         Does the actual work of exporting of the PDF, Jpeg and thumbnail files.
         """
         export_dir = export_params["exportDirectory"]
-        arc_aprx = arcpy.mp.ArcGISProject(recipe.map_project_path)
+
+        # When exporting from ArcGIS Pro, we need to set the project as 'CURRENT' 
+        # in order for it to use the latest context.
+
+        arc_aprx = arcpy.mp.ArcGISProject('CURRENT') \
+            if self.useCurrent \
+            else \
+            arcpy.mp.ArcGISProject(recipe.map_project_path)
 
         lyt = arc_aprx.listLayouts(export_params.get("layout", None))[0]
 
@@ -381,9 +390,9 @@ class ArcProRunner(BaseRunnerPlugin):
                     seriesPdfFileLocation = os.path.join(exportDirectory, seriesPdfFileName)
                     ms.exportToPDF(seriesPdfFileLocation, "ALL", resolution=int(
                         exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
-
-        Layout.exportToPDF(pdfFileLocation, resolution=int(exportParams.get(
-            "pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
+        else:
+            Layout.exportToPDF(pdfFileLocation, resolution=int(exportParams.get(
+                "pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
 
         pdfFileSize = os.path.getsize(pdfFileLocation)
         exportParams["pdfFileSize"] = pdfFileSize
