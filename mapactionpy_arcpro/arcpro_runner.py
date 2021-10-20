@@ -168,7 +168,7 @@ class ArcProRunner(BaseRunnerPlugin):
         """
         export_dir = export_params["exportDirectory"]
 
-        # When exporting from ArcGIS Pro, we need to set the project as 'CURRENT' 
+        # When exporting from ArcGIS Pro, we need to set the project as 'CURRENT'
         # in order for it to use the latest context.
 
         arc_aprx = arcpy.mp.ArcGISProject('CURRENT') \
