@@ -193,6 +193,7 @@ class ArcProRunner(BaseRunnerPlugin):
         now = datetime.now()
         export_params["createdate"] = now.strftime("%Y-%m-%d %H:%M:%S")
         export_params["createtime"] = now.strftime("%H:%M")
+        export_params['qclevel'] = export_params.get('qclevel', 'Automatically generated')
 
         export_params['themes'] = export_params.get('themes', set())
         export_params['accessnotes'] = export_params.get('accessnotes', "")
