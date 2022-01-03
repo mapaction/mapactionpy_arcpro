@@ -124,7 +124,7 @@ def main(args):
     layerProperties = LayerProperties(event.cmf_descriptor_path, '.lyr', verify_on_creation=False)
     recipe = MapRecipe(recipe_without_positive_iso3_code, layerProperties)
     recipe = runner.get_templates(state=recipe)
-    recipe = runner.create_ouput_map_project(state=recipe)
+    recipe = runner.create_output_map_project(state=recipe)
     recipe = runner.build_project_files(state=recipe)
 
     themes = set()

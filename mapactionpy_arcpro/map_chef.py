@@ -32,7 +32,7 @@ class MapChef:
     # It is already known that the various file and directory paths are valid etc. Why not just pass
     # those objects in as parameters to the MapChef constructor?
     #
-    # Depending on whether or not it is indented that the `cook()` method might be called multiple
+    # Depending on whether or not it is intended that the `cook()` method might be called multiple
     # times in the life of a MapChef object, it would be worth reviewing
 
     def __init__(self,

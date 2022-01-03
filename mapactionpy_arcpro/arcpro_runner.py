@@ -6,7 +6,6 @@ from PIL import Image
 from resizeimage import resizeimage
 from slugify import slugify
 from mapactionpy_arcpro.map_chef import MapChef
-from mapactionpy_controller.xml_exporter import XmlExporter
 from mapactionpy_controller.plugin_base import BaseRunnerPlugin
 from datetime import datetime
 
@@ -162,11 +161,11 @@ class ArcProRunner(BaseRunnerPlugin):
         # return returnValue
         return True
 
-    def _do_export(self, export_params, recipe):
+    def _do_export(self, recipe):
         """
         Does the actual work of exporting of the PDF, Jpeg and thumbnail files.
         """
-        export_dir = export_params["exportDirectory"]
+        export_dir = recipe.export_path
 
         # When exporting from ArcGIS Pro, we need to set the project as 'CURRENT'
         # in order for it to use the latest context.
@@ -176,35 +175,40 @@ class ArcProRunner(BaseRunnerPlugin):
             else \
             arcpy.mp.ArcGISProject(recipe.map_project_path)
 
-        lyt = arc_aprx.listLayouts(export_params.get("layout", None))[0]
+        lyt = arc_aprx.listLayouts(recipe.export_metadata.get("layout", None))[0]
 
         text_element_dict = self.get_text_elements(lyt)
 
-        export_params["summary"] = text_element_dict.get('summary', recipe.summary)
-        export_params["datasource"] = text_element_dict.get('data_sources', "")
-        export_params["datum"] = text_element_dict.get('spatial_reference', "")
-        export_params["title"] = text_element_dict.get('title', "")
-        export_params["timezone"] = text_element_dict.get('timezone', self.hum_event.time_zone)
+        recipe.export_metadata["datasource"] = text_element_dict.get('data_sources', "")
+        recipe.export_metadata["datum"] = text_element_dict.get('spatial_reference', "")
+        recipe.export_metadata["donor"] = text_element_dict.get('donor_credit', "")
+        recipe.export_metadata["glideno"] = text_element_dict.get('glide_no', "")
+        recipe.export_metadata["language"] = text_element_dict.get('language', "")
+        recipe.export_metadata["sourceorg"] = self.hum_event.default_source_organisation
+        recipe.export_metadata["summary"] = text_element_dict.get('summary', recipe.summary)
+        recipe.export_metadata["timezone"] = text_element_dict.get('time_zone', self.hum_event.time_zone)
+        recipe.export_metadata["title"] = text_element_dict.get('title', "")
 
         core_file_name = os.path.splitext(os.path.basename(recipe.map_project_path))[0]
-        export_params["coreFileName"] = core_file_name
-        export_params["productType"] = export_params.get('productType', "mapsheet")
+        recipe.core_file_name = core_file_name
 
         now = datetime.now()
-        export_params["createdate"] = now.strftime("%Y-%m-%d %H:%M:%S")
-        export_params["createtime"] = now.strftime("%H:%M")
-        export_params['qclevel'] = export_params.get('qclevel', 'Automatically generated')
+        recipe.export_metadata["createdate"] = now.strftime("%Y-%m-%d %H:%M:%S")
+        recipe.export_metadata["createtime"] = now.strftime("%H:%M")
+        recipe.export_metadata['qclevel'] = recipe.export_metadata.get('qclevel', 'Automatically generated')
+        recipe.export_metadata['accessnotes'] = recipe.export_metadata.get('accessnotes', "")
 
-        export_params['themes'] = export_params.get('themes', set())
-        export_params['accessnotes'] = export_params.get('accessnotes', "")
-        export_params['pdfFileLocation'] = self.exportPdf(core_file_name, export_dir, arc_aprx, export_params)
-        export_params['jpgFileLocation'] = self.exportJpeg(core_file_name, export_dir, arc_aprx, export_params)
+        pdfFileLocation = self.exportPdf(core_file_name, export_dir, arc_aprx, recipe.export_metadata)
+        recipe.zip_file_contents.append(pdfFileLocation)
+        jpegFileLocation = self.exportJpeg(core_file_name, export_dir, arc_aprx, recipe.export_metadata)
+        recipe.zip_file_contents.append(jpegFileLocation)
 
-        export_params['emfFileLocation'] = ""
-        if (export_params.get("exportemf", False)):
-            export_params['emfFileLocation'] = self.exportEmf(core_file_name, export_dir, arc_aprx, export_params)
-        export_params['pngThumbNailFileLocation'] = self.exportPngThumbNail(
-            core_file_name, export_dir, arc_aprx, export_params)
+        if (recipe.export_metadata.get("exportemf", False)):
+            emfFileLocation = self.exportEmf(core_file_name, export_dir, arc_aprx, recipe.export_metadata)
+            recipe.zip_file_contents.append(emfFileLocation)
+            del recipe.export_metadata["exportemf"]
+        pngThumbNailFileLocation = self.exportPngThumbNail(core_file_name, export_dir, arc_aprx, recipe.export_metadata)
+        recipe.zip_file_contents.append(pngThumbNailFileLocation)
 
         if recipe.atlas:
             self._export_atlas(recipe, arc_aprx, export_dir, core_file_name)
@@ -218,18 +222,16 @@ class ArcProRunner(BaseRunnerPlugin):
             if (extent.height > maxHeight) and (extent.width > maxWidth):
                 maxWidth = extent.width
                 maxHeight = extent.height
-                export_params["xmin"] = round(extent.XMin, 2)
-                export_params["ymin"] = round(extent.YMin, 2)
-                export_params["xmax"] = round(extent.XMax, 2)
-                export_params["ymax"] = round(extent.YMax, 2)
+                recipe.export_metadata["xmin"] = round(extent.XMin, 2)
+                recipe.export_metadata["ymin"] = round(extent.YMin, 2)
+                recipe.export_metadata["xmax"] = round(extent.XMax, 2)
+                recipe.export_metadata["ymax"] = round(extent.YMax, 2)
 
-        xmlExporter = XmlExporter(self.hum_event, self.chef)
-        export_params['mapNumber'] = recipe.mapnumber
-        export_params['productName'] = recipe.product
-        export_params['versionNumber'] = recipe.version_num
-        export_params['exportXmlFileLocation'] = xmlExporter.write(export_params)
-
-        return export_params
+        recipe.export_metadata['mapNumber'] = recipe.mapnumber
+        recipe.export_metadata['productName'] = recipe.product
+        recipe.export_metadata['versionNumber'] = recipe.version_num
+        recipe.export_metadata['language_iso2'] = self.hum_event.language_iso2
+        return recipe
 
     def _export_atlas(self, recipe_with_atlas, arc_mxd, export_dir, core_file_name):
         """
@@ -352,12 +354,12 @@ class ArcProRunner(BaseRunnerPlugin):
         jpgFileName = coreFileName + "-" + \
             exportParams.get("jpgresolutiondpi", str(self.hum_event.default_jpeg_res_dpi)) + "dpi.jpg"
         jpgFileLocation = os.path.join(exportDirectory, jpgFileName)
-        exportParams["jpgFileName"] = jpgFileName
+        exportParams["jpgfilename"] = jpgFileName
         Layout = aprx.listLayouts(exportParams.get("layout", None))[0]
         Layout.exportToJPEG(jpgFileLocation, resolution=int(exportParams.get(
             "jpgresolutiondpi", str(self.hum_event.default_jpeg_res_dpi))))
         jpgFileSize = os.path.getsize(jpgFileLocation)
-        exportParams["jpgFileSize"] = jpgFileSize
+        exportParams["jpgfilesize"] = jpgFileSize
         return jpgFileLocation
 
     def exportPdf(self, coreFileName, exportDirectory, aprx, exportParams):
@@ -366,7 +368,7 @@ class ArcProRunner(BaseRunnerPlugin):
             exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
 
         pdfFileLocation = os.path.join(exportDirectory, pdfFileName)
-        exportParams["pdfFileName"] = pdfFileName
+        exportParams["pdffilename"] = pdfFileName
 
         Layout = aprx.listLayouts(exportParams.get("layout", None))[0]
         # https://pro.arcgis.com/en/pro-app/arcpy/mapping/mapseries-class.htm
@@ -396,7 +398,7 @@ class ArcProRunner(BaseRunnerPlugin):
                 "pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
 
         pdfFileSize = os.path.getsize(pdfFileLocation)
-        exportParams["pdfFileSize"] = pdfFileSize
+        exportParams["pdffilesize"] = pdfFileSize
         return pdfFileLocation
 
     def exportEmf(self, coreFileName, exportDirectory, aprx, exportParams):
@@ -404,14 +406,14 @@ class ArcProRunner(BaseRunnerPlugin):
         emfFileName = coreFileName + "-" + \
             exportParams.get("emfresolutiondpi", str(self.hum_event.default_emf_res_dpi)) + "dpi.emf"
         emfFileLocation = os.path.join(exportDirectory, emfFileName)
-        exportParams["emfFileName"] = emfFileName
+        exportParams["emffilename"] = emfFileName
 
         Layout = aprx.listLayouts(exportParams.get("layout", None))[0]
         Layout.exportToEMF(emfFileLocation, resolution=int(exportParams.get(
             "emfresolutiondpi", str(self.hum_event.default_emf_res_dpi))))
 
         emfFileSize = os.path.getsize(emfFileLocation)
-        exportParams["emfFileSize"] = emfFileSize
+        exportParams["emffilesize"] = emfFileSize
         return emfFileLocation
 
     def exportPngThumbNail(self, coreFileName, exportDirectory, aprx, exportParams):
@@ -437,7 +439,7 @@ class ArcProRunner(BaseRunnerPlugin):
         os.remove(pngTmpThumbNailFileLocation)
         return pngThumbNailFileLocation
 
-    def create_ouput_map_project(self, **kwargs):
+    def create_output_map_project(self, **kwargs):
         recipe = kwargs['state']
         # Create `mapNumberDirectory` for output
         output_dir = os.path.join(self.cmf.map_projects, recipe.mapnumber)
