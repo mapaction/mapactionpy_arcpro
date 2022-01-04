@@ -165,7 +165,7 @@ class ArcProRunner(BaseRunnerPlugin):
         """
         Does the actual work of exporting of the PDF, Jpeg and thumbnail files.
         """
-        export_dir = recipe.export_path
+        export_dir = recipe.export_metadata.get('exportDirectory', recipe.export_path)
 
         # When exporting from ArcGIS Pro, we need to set the project as 'CURRENT'
         # in order for it to use the latest context.

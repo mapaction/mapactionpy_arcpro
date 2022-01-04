@@ -62,7 +62,7 @@ def main(args):
     propertiesDict['jpgresolutiondpi'] = args.jpegdpi
     propertiesDict['pdfresolutiondpi'] = args.pdfdpi
     propertiesDict['proj'] = args.projection
-    # propertiesDict['exportDirectory'] = args.exportDirectory
+    propertiesDict['exportDirectory'] = args.exportDirectory
     propertiesDict['product-type'] = args.productType
     # propertiesDict['mapBookMode'] = args.mapBookMode
     propertiesDict['layout'] = args.layout
@@ -78,8 +78,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Executes ArcProRunner for a given event',
     )
-#    parser.add_argument("--exportDirectory", dest="exportDirectory", required=True,
-#                        help="path to export folder")
+    parser.add_argument("--exportDirectory", dest="exportDirectory", required=True,
+                        help="path to export folder")
     parser.add_argument("--event", dest="eventDescriptionFile", required=True,
                         help="path to file", metavar="FILE", type=lambda x: is_valid_file(parser, x))
     parser.add_argument("--mapNumber", dest="mapNumber", required=True, help="Map number")
