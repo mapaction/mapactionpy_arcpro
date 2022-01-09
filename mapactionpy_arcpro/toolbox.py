@@ -70,6 +70,7 @@ def main(args):
     propertiesDict['location'] = args.location
     propertiesDict['qclevel'] = args.qclevel
     propertiesDict['access'] = args.access
+    propertiesDict['countries'] = args.countries
     recipe.export_metadata = propertiesDict
     recipe = runner.export_maps(state=recipe)
 
@@ -102,5 +103,6 @@ if __name__ == '__main__':
     parser.add_argument("--qclevel", dest="qclevel", required=True, help="qcControl")
     parser.add_argument("--location", dest="location", required=True, help="location")
     parser.add_argument("--access", dest="access", required=True, help="access")
+    parser.add_argument("--countries", dest="countries", required=True, help="countries")
     args = parser.parse_args()
     main(args)
