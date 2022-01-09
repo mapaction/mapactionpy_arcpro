@@ -206,7 +206,6 @@ class ArcProRunner(BaseRunnerPlugin):
         if (recipe.export_metadata.get("exportemf", False)):
             emfFileLocation = self.exportEmf(core_file_name, export_dir, arc_aprx, recipe.export_metadata)
             recipe.zip_file_contents.append(emfFileLocation)
-            del recipe.export_metadata["exportemf"]
         pngThumbNailFileLocation = self.exportPngThumbNail(core_file_name, export_dir, arc_aprx, recipe.export_metadata)
         recipe.zip_file_contents.append(pngThumbNailFileLocation)
 
@@ -231,6 +230,7 @@ class ArcProRunner(BaseRunnerPlugin):
         recipe.export_metadata['productName'] = recipe.product
         recipe.export_metadata['versionNumber'] = recipe.version_num
         recipe.export_metadata['language_iso2'] = self.hum_event.language_iso2
+
         return recipe
 
     def _export_atlas(self, recipe_with_atlas, arc_mxd, export_dir, core_file_name):
