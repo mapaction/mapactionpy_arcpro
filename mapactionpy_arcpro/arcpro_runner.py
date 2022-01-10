@@ -2,10 +2,11 @@ import arcpy
 import logging
 import os
 from shutil import copyfile
+import json
 from PIL import Image
 from resizeimage import resizeimage
 from slugify import slugify
-from mapactionpy_arcpro.map_chef import MapChef
+from mapactionpy_arcpro.map_chef import MapChef, get_map_scale, get_map_spatial_ref
 from mapactionpy_controller.plugin_base import BaseRunnerPlugin
 from datetime import datetime
 
@@ -16,19 +17,16 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-
 class ArcProRunner(BaseRunnerPlugin):
     """
     ArcProRunner - Executes the ArcPro automation methods
     """
 
     def __init__(self,
-                 hum_event,
-                 useCurrent=False):
+                 hum_event):
         super(ArcProRunner, self).__init__(hum_event)
 
         self.exportMap = False
-        self.useCurrent = useCurrent
         self.minx = 0
         self.miny = 0
         self.maxx = 0
@@ -38,17 +36,10 @@ class ArcProRunner(BaseRunnerPlugin):
     def build_project_files(self, **kwargs):
         # Construct a Crash Move Folder object if the cmf_description.json exists
         recipe = kwargs['state']
-
         aprx = arcpy.mp.ArcGISProject(recipe.map_project_path)
 
         self.chef = MapChef(aprx, self.cmf, self.hum_event)
         self.chef.cook(recipe)
-        # self.chef.alignLegend(self.hum_event.orientation)
-
-        # Output the Map Generation report alongside the MXD
-        reportJsonFile = recipe.map_project_path.replace(".aprx", ".json")
-        with open(reportJsonFile, 'w') as outfile:
-            outfile.write(self.chef.report_as_json())
 
         return recipe
 
@@ -60,14 +51,7 @@ class ArcProRunner(BaseRunnerPlugin):
 
     def get_lyr_render_extension(self):
         return '.lyr'
-
-    def get_text_elements(self, layout):
-        # https://pro.arcgis.com/en/pro-app/arcpy/mapping/textelement-class.htm
-        text_element_dict = {}
-        for elm in layout.listElements("TEXT_ELEMENT", "*"):
-            text_element_dict[elm.name] = elm.text
-        return text_element_dict
-
+    
     def _get_largest_map_frame(self, data_frames):
         """
         This returns the dataframe occupying the largest area on the page.
@@ -100,22 +84,24 @@ class ArcProRunner(BaseRunnerPlugin):
         # This means that there are two or more data frames with the same name and this is an error condition
         raise ValueError('There are two or more data frames with the same name')
 
-    def get_aspect_ratio_of_target_area(self, recipe):
-        pass
+    def get_lyr_render_extension(self):
+        return '.lyr'
 
-    def get_aspect_ratios_of_templates(self, possible_templates):
+    def get_aspect_ratios_of_templates(self, possible_templates, recipe):
         """
-        Calculates the aspect ratio of the largest* map frame within the list of templates.
+        Calculates the aspect ratio of the principal map frame within the list of templates.
 
-        @param possible_templates: A list of paths to possible templates
+        @param possible_templates: A list of paths to possible templates.
+        @param recipe: A MapRecipe which is used to determine the principal map frame.
         @returns: A list of tuples. For each tuple the first element is the path to the template. The second
                   element is the aspect ratio of the largest* map frame within that template.
                   See `_get_largest_map_frame` for the description of hour largest is determined.
         """
         logging.debug('Calculating the aspect ratio of the largest map frame within the list of templates.')
         results = []
-
+        print(self.cmf.map_templates,"-------------------------------cmf.map_templates")
         aprxPath = os.path.join(self.cmf.map_templates, 'pro-2.5-blank-project.aprx')
+        print(",".join(possible_templates),"-------------------------------possible_templates")
         aprx = arcpy.mp.ArcGISProject(aprxPath)
 
         layoutIndex = 0
@@ -129,12 +115,16 @@ class ArcProRunner(BaseRunnerPlugin):
             results.append((template, aspect_ratio))
             logging.debug('Calculated aspect ratio= {} for template={}'.format(aspect_ratio, template))
             layoutIndex = layoutIndex+1
+
         return results
+
+    def get_lyr_extents(self, recipe_lyr):
+        desc = arcpy.Describe(recipe_lyr.data_source_path)
+        recipe_lyr.extent = json.loads(desc.extent.JSON)
 
     # TODO: asmith 2020/03/03
     # Instinctively I would like to see this moved to the MapReport class with an __eq__ method which
     # would look very much like this one.
-
     def haveDataSourcesChanged(self, previousReportFile):
         # previousReportFile = '{}-v{}_{}.json'.format(
         #     recipe.mapnumber,
@@ -165,75 +155,61 @@ class ArcProRunner(BaseRunnerPlugin):
         """
         Does the actual work of exporting of the PDF, Jpeg and thumbnail files.
         """
-        export_dir = recipe.export_metadata.get('exportDirectory', recipe.export_path)
+        # arc_mxd = arcpy.mapping.MapDocument(recipe.map_project_path)
+        print(recipe.map_project_path)
+        arc_mxd =  arcpy.mp.ArcGISProject(recipe.map_project_path)
+        
 
-        # When exporting from ArcGIS Pro, we need to set the project as 'CURRENT'
-        # in order for it to use the latest context.
+        # PDF export
+        pdf_path = self.export_pdf(recipe, arc_mxd)
+        recipe.zip_file_contents.append(pdf_path)
+        recipe.export_metadata['pdffilename'] = os.path.basename(pdf_path)
 
-        arc_aprx = arcpy.mp.ArcGISProject('CURRENT') \
-            if self.useCurrent \
-            else \
-            arcpy.mp.ArcGISProject(recipe.map_project_path)
+        # JPEG export
+        jpeg_path = self.export_jpeg(recipe, arc_mxd)
+        recipe.zip_file_contents.append(jpeg_path)
+        recipe.export_metadata['jpgfilename'] = os.path.basename(jpeg_path)
 
-        lyt = arc_aprx.listLayouts(recipe.export_metadata.get("layout", None))[0]
+        # Thumbnail
+        tb_nail_path = self.export_png_thumbnail(recipe, arc_mxd)
+        recipe.zip_file_contents.append(tb_nail_path)
+        recipe.export_metadata['pngThumbNailFileLocation'] = tb_nail_path
 
-        text_element_dict = self.get_text_elements(lyt)
-
-        recipe.export_metadata["datasource"] = text_element_dict.get('data_sources', "")
-        recipe.export_metadata["datum"] = text_element_dict.get('spatial_reference', "")
-        recipe.export_metadata["donor"] = text_element_dict.get('donor_credit', "")
-        recipe.export_metadata["glideno"] = text_element_dict.get('glide_no', "")
-        recipe.export_metadata["language"] = text_element_dict.get('language', "")
-        recipe.export_metadata["sourceorg"] = self.hum_event.default_source_organisation
-        recipe.export_metadata["summary"] = text_element_dict.get('summary', recipe.summary)
-        recipe.export_metadata["timezone"] = text_element_dict.get('time_zone', self.hum_event.time_zone)
-        recipe.export_metadata["title"] = text_element_dict.get('title', "")
-
-        core_file_name = os.path.splitext(os.path.basename(recipe.map_project_path))[0]
-        recipe.core_file_name = core_file_name
-
-        now = datetime.now()
-        recipe.export_metadata["createdate"] = now.strftime("%Y-%m-%d %H:%M:%S")
-        recipe.export_metadata["createtime"] = now.strftime("%H:%M")
-        recipe.export_metadata['qclevel'] = recipe.export_metadata.get('qclevel', 'Automatically generated')
-        recipe.export_metadata['accessnotes'] = recipe.export_metadata.get('accessnotes', "")
-
-        pdfFileLocation = self.exportPdf(core_file_name, export_dir, arc_aprx, recipe.export_metadata)
-        recipe.zip_file_contents.append(pdfFileLocation)
-        jpegFileLocation = self.exportJpeg(core_file_name, export_dir, arc_aprx, recipe.export_metadata)
-        recipe.zip_file_contents.append(jpegFileLocation)
-
-        if (recipe.export_metadata.get("exportemf", False)):
-            emfFileLocation = self.exportEmf(core_file_name, export_dir, arc_aprx, recipe.export_metadata)
-            recipe.zip_file_contents.append(emfFileLocation)
-            del recipe.export_metadata["exportemf"]
-        pngThumbNailFileLocation = self.exportPngThumbNail(core_file_name, export_dir, arc_aprx, recipe.export_metadata)
-        recipe.zip_file_contents.append(pngThumbNailFileLocation)
-
+        # Atlas (if required)
         if recipe.atlas:
-            self._export_atlas(recipe, arc_aprx, export_dir, core_file_name)
+            export_dir = recipe.export_path
+            # self._export_atlas(recipe, arc_mxd, export_dir)
 
-        maxWidth = 0
-        maxHeight = 0
+        # Update export metadata and return
+        return self._update_export_metadata(recipe, arc_mxd)
 
-        # Get the extents of the largest "map"
-        for map in (arc_aprx.listMaps()):
-            extent = map.defaultView.camera.getExtent()
-            if (extent.height > maxHeight) and (extent.width > maxWidth):
-                maxWidth = extent.width
-                maxHeight = extent.height
-                recipe.export_metadata["xmin"] = round(extent.XMin, 2)
-                recipe.export_metadata["ymin"] = round(extent.YMin, 2)
-                recipe.export_metadata["xmax"] = round(extent.XMax, 2)
-                recipe.export_metadata["ymax"] = round(extent.YMax, 2)
+    def _update_export_metadata(self, recipe, arc_mxd):
+        """
+        Populates the `recipe.export_metadata` dict
+        """
+        recipe.export_metadata["coreFileName"] = recipe.core_file_name
+        recipe.export_metadata["product-type"] = "mapsheet"
+        recipe.export_metadata['themes'] = recipe.export_metadata.get('themes', set())
 
         recipe.export_metadata['mapNumber'] = recipe.mapnumber
-        recipe.export_metadata['productName'] = recipe.product
+        recipe.export_metadata['title'] = recipe.product
         recipe.export_metadata['versionNumber'] = recipe.version_num
-        recipe.export_metadata['language_iso2'] = self.hum_event.language_iso2
+        recipe.export_metadata['summary'] = recipe.summary
+        recipe.export_metadata["xmin"] = self.minx
+        recipe.export_metadata["ymin"] = self.miny
+        recipe.export_metadata["xmax"] = self.maxx
+        recipe.export_metadata["ymax"] = self.maxy
+        now = datetime.now()
+        recipe.export_metadata["createdate"] = now.strftime("%d-%b-%Y")
+        recipe.export_metadata["createtime"]  = now.strftime("%H:%M")
+
+        # recipe.export_metadata["createdate"] = recipe.creation_time_stamp.strftime("%d-%b-%Y")
+        # recipe.export_metadata["createtime"] = recipe.creation_time_stamp.strftime("%H:%M")
+        recipe.export_metadata["scale"] = get_map_scale(arc_mxd, recipe)
+        recipe.export_metadata["datum"] = get_map_spatial_ref(arc_mxd, recipe)
         return recipe
 
-    def _export_atlas(self, recipe_with_atlas, arc_mxd, export_dir, core_file_name):
+    def _export_atlas(self, recipe_with_atlas, arc_aprx, export_dir):
         """
         Exports each individual page for recipes which contain an atlas definition
         """
@@ -256,13 +232,23 @@ class ArcProRunner(BaseRunnerPlugin):
         # recipe_lyr = [recipe_lyr for recipe_lyr in recipe_frame.layers if
         #     recipe_lyr.name == recipe_with_atlas.atlas.layer_name][0]
 
+
         recipe_frame = recipe_with_atlas.get_frame(recipe_with_atlas.atlas.map_frame)
         recipe_lyr = recipe_frame.get_layer(recipe_with_atlas.atlas.layer_name)
         queryColumn = recipe_with_atlas.atlas.column_name
 
+        arc_layout = arc_aprx.listLayouts("*")[0]
         lyr_index = recipe_frame.layers.index(recipe_lyr)
-        arc_df = arcpy.mapping.ListDataFrames(arc_mxd, recipe_frame.name)[0]
-        arc_lyr = arcpy.mapping.ListLayers(arc_mxd, None, arc_df)[lyr_index]
+        # print(f"layerName:{recipe_with_atlas.atlas.layer_name} layer_index : {lyr_index}")
+        # arc_allFrames = arc_layout.listElements('MAPFRAME_ELEMENT','*')
+        # print(f"----dataframes in current aprx <{len(arc_allFrames)}>")
+        # print(["-".join([n.name for n in f.listLayers("*")]) for f in arc_allFrames])
+
+        arc_df = arc_layout.listElements("MAPFRAME_ELEMENT",recipe_frame.name +"*")[0] 
+        arc_lyr = arc_df.map.listLayers("*")[lyr_index]
+
+        # arc_df = arcpy.mapping.ListDataFrames(arc_mxd, recipe_frame.name)[0]
+        # arc_lyr = arcpy.mapping.ListLayers(arc_mxd, None, arc_df)[lyr_index]
 
         # TODO: asmith 2020/03/03
         #
@@ -339,107 +325,67 @@ class ArcProRunner(BaseRunnerPlugin):
             # Clear selection, otherwise the selected feature is highlighted in the exported map
             arcpy.SelectLayerByAttribute_management(arc_lyr, "CLEAR_SELECTION")
             # Export to PDF
-            # pdfFileName = core_file_name + "-" + \
-            #     slugify(unicode(region)) + "-" + str(self.hum_event.default_pdf_res_dpi) + "dpi.pdf"
-            pdfFileName = core_file_name + "-" + \
-                slugify(region) + "-" + str(self.hum_event.default_pdf_res_dpi) + "dpi.pdf"
+            pdfFileName = recipe_with_atlas.core_file_name + "-" + \
+                slugify(unicode(region)) + "-" + str(self.hum_event.default_pdf_res_dpi) + "dpi.pdf"
             pdfFileLocation = os.path.join(export_dir, pdfFileName)
+            recipe_with_atlas.zip_file_contents.append(pdfFileLocation)
 
+            logging.info('About to export atlas page for region; {}.'.format(region))
             arcpy.mapping.ExportToPDF(arc_mxd, pdfFileLocation, resolution=int(self.hum_event.default_pdf_res_dpi))
+            logging.info('Completed exporting atlas page for for region; {}.'.format(region))
+
             # if arcpy.Exists(os.path.join(export_dir, shpFile)):
             #     arcpy.Delete_management(os.path.join(export_dir, shpFile))
 
-    def exportJpeg(self, coreFileName, exportDirectory, aprx, exportParams):
+    def export_jpeg(self, recipe, arc_aprx):
         # JPEG
-        jpgFileName = coreFileName + "-" + \
-            exportParams.get("jpgresolutiondpi", str(self.hum_event.default_jpeg_res_dpi)) + "dpi.jpg"
-        jpgFileLocation = os.path.join(exportDirectory, jpgFileName)
-        exportParams["jpgfilename"] = jpgFileName
-        Layout = aprx.listLayouts(exportParams.get("layout", None))[0]
-        Layout.exportToJPEG(jpgFileLocation, resolution=int(exportParams.get(
-            "jpgresolutiondpi", str(self.hum_event.default_jpeg_res_dpi))))
-        jpgFileSize = os.path.getsize(jpgFileLocation)
-        exportParams["jpgfilesize"] = jpgFileSize
-        return jpgFileLocation
+        jpeg_fname = recipe.core_file_name+"-"+str(self.hum_event.default_jpeg_res_dpi) + "dpi.jpg"
+        jpeg_fpath = os.path.join(recipe.export_path, jpeg_fname)
+        recipe.export_metadata["jpgfilename"] = jpeg_fname
+        Layout = arc_aprx.listLayouts("*")[0]
+        Layout.exportToJPEG(jpeg_fpath, resolution=int(str(self.hum_event.default_jpeg_res_dpi)))
+        # arcpy.mapping.ExportToJPEG(arc_mxd, jpeg_fpath)
+        jpeg_fsize = os.path.getsize(jpeg_fpath)
+        recipe.export_metadata["jpgfilesize"] = jpeg_fsize
+        return jpeg_fpath
 
-    def exportPdf(self, coreFileName, exportDirectory, aprx, exportParams):
+    def export_pdf(self, recipe, arc_aprx):
+        # recipe.core_file_name, recipe.export_path, arc_mxd, recipe.export_metadata
+        recipe.core_file_name = os.path.splitext(os.path.basename(recipe.map_project_path))[0]
         # PDF
-        pdfFileName = coreFileName + "-" + \
-            exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
+        pdf_fname = recipe.core_file_name+"-"+str(self.hum_event.default_pdf_res_dpi) + "dpi.pdf"
+        pdf_fpath = os.path.join(recipe.export_path, pdf_fname)
+        recipe.export_metadata["pdffilename"] = pdf_fname
+        lyt = arc_aprx.listLayouts("*")[0]
+        lyt.exportToPDF(pdf_fpath, resolution=int(str(self.hum_event.default_pdf_res_dpi)))
+        #arcpy.mapping.ExportToPDF(arc_mxd, pdf_fpath, resolution=int(self.hum_event.default_pdf_res_dpi))
+        pdf_fsize = os.path.getsize(pdf_fpath)
+        recipe.export_metadata["pdffilesize"] = pdf_fsize
+        return pdf_fpath
 
-        pdfFileLocation = os.path.join(exportDirectory, pdfFileName)
-        exportParams["pdffilename"] = pdfFileName
-
-        Layout = aprx.listLayouts(exportParams.get("layout", None))[0]
-        # https://pro.arcgis.com/en/pro-app/arcpy/mapping/mapseries-class.htm
-
-        # exports only the selected pages to a single, multipage PDF file:
-        if Layout.mapSeries is not None:
-            ms = Layout.mapSeries
-            if ms.enabled and (exportParams['productType'] == "atlas"):
-                # fields = arcpy.ListFields(fc, 'Flag')
-                if (exportParams.get("mapBookMode", "Multiple PDF Files") == "Multiple PDF Files"):
-                    for pageNum in range(1, ms.pageCount + 1):
-                        ms.currentPageNumber = pageNum
-                        seriesMapName = slugify(getattr(ms.pageRow, ms.pageNameField.name))
-                        seriesPdfFileName = coreFileName + "-mapbook-" + seriesMapName + "-" + \
-                            exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
-                        seriesPdfFileLocation = os.path.join(exportDirectory, seriesPdfFileName)
-                        ms.exportToPDF(seriesPdfFileLocation, "CURRENT", resolution=int(
-                            exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
-                else:
-                    seriesPdfFileName = coreFileName + "-mapbook-" + \
-                        exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
-                    seriesPdfFileLocation = os.path.join(exportDirectory, seriesPdfFileName)
-                    ms.exportToPDF(seriesPdfFileLocation, "ALL", resolution=int(
-                        exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
-        else:
-            Layout.exportToPDF(pdfFileLocation, resolution=int(exportParams.get(
-                "pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
-
-        pdfFileSize = os.path.getsize(pdfFileLocation)
-        exportParams["pdffilesize"] = pdfFileSize
-        return pdfFileLocation
-
-    def exportEmf(self, coreFileName, exportDirectory, aprx, exportParams):
-        # EMF
-        emfFileName = coreFileName + "-" + \
-            exportParams.get("emfresolutiondpi", str(self.hum_event.default_emf_res_dpi)) + "dpi.emf"
-        emfFileLocation = os.path.join(exportDirectory, emfFileName)
-        exportParams["emffilename"] = emfFileName
-
-        Layout = aprx.listLayouts(exportParams.get("layout", None))[0]
-        Layout.exportToEMF(emfFileLocation, resolution=int(exportParams.get(
-            "emfresolutiondpi", str(self.hum_event.default_emf_res_dpi))))
-
-        emfFileSize = os.path.getsize(emfFileLocation)
-        exportParams["emffilesize"] = emfFileSize
-        return emfFileLocation
-
-    def exportPngThumbNail(self, coreFileName, exportDirectory, aprx, exportParams):
+    def export_png_thumbnail(self, recipe, arc_aprx):
         # PNG Thumbnail.  Need to create a larger image first.
         # If this isn't done, the thumbnail is pixelated amd doesn't look good
-        pngTmpThumbNailFileName = "tmp-thumbnail.png"
-        pngTmpThumbNailFileLocation = os.path.join(exportDirectory, pngTmpThumbNailFileName)
+        tmp_fname = "tmp-thumbnail.png"
+        tmp_fpath = os.path.join(recipe.export_path, tmp_fname)
+        Layout = arc_aprx.listLayouts("*")[0]
+        Layout.exportToPNG(tmp_fpath)
+        # arcpy.mapping.ExportToPNG(arc_mxd, tmp_fpath)
 
-        Layout = aprx.listLayouts(exportParams.get("layout", None))[0]
-        Layout.exportToPNG(pngTmpThumbNailFileLocation)
-
-        pngThumbNailFileName = "thumbnail.png"
-        pngThumbNailFileLocation = os.path.join(exportDirectory, pngThumbNailFileName)
+        png_fname = "thumbnail.png"
+        png_fpath = os.path.join(recipe.export_path, png_fname)
 
         # Resize the thumbnail
-        fd_img = open(pngTmpThumbNailFileLocation, 'r+b')
+        fd_img = open(tmp_fpath, 'r+b')
         img = Image.open(fd_img)
         img = resizeimage.resize('thumbnail', img, [140, 99])
-        img.save(pngThumbNailFileLocation, img.format)
+        img.save(png_fpath, img.format)
         fd_img.close()
 
         # Remove the temporary larger thumbnail
-        os.remove(pngTmpThumbNailFileLocation)
-        return pngThumbNailFileLocation
-
-    def create_output_map_project(self, **kwargs):
+        os.remove(tmp_fpath)
+        return png_fpath
+    def create_ouput_map_project(self, **kwargs):
         recipe = kwargs['state']
         # Create `mapNumberDirectory` for output
         output_dir = os.path.join(self.cmf.map_projects, recipe.mapnumber)
@@ -472,9 +418,14 @@ class ArcProRunner(BaseRunnerPlugin):
         # Copy layer file to project path
         copyfile(recipe.template_path, output_layout_path)
         aprx = arcpy.mp.ArcGISProject(recipe.map_project_path)
-
+        # print(output_layout_path)
         aprx.importDocument(output_layout_path)
-
+        
+        # lyt = aprx.listLayouts('*')[0]
+        # for df in lyt.listElements("MAPFRAME_ELEMENT", "Main map*"):
+            # print(df.camera.scale)
+            # intValue = '{:,}'.format(int(df.camera.scale))
+            # print(intValue)
         aprx.save()
 
         return recipe

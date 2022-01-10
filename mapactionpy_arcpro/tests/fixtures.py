@@ -1,3 +1,117 @@
+# flake8: noqa
+import json
+from os import path
+
+fixture_recipe_minimal = (
+    r'''{
+	   "mapnumber": "MA9999",
+	   "category": "Reference",
+	   "summary": "Every layer",
+	   "export": true,
+	   "template": "reference_portrait_bottom",
+	   "principal_map_frame": "Main map",
+	   "product": "Every layer",
+	   "map_frames": [{
+		"name": "Main map",
+		"crs": "epsg:4326",
+		"layers": [{
+			"name": "mainmap-tran-por-pt-s0-allmaps",
+			"reg_exp": "^hnd_tran_por_pt_s(u|[0-5])_(.*?)_([phm][phm])(.*?).shp$",
+			"definition_query": "",
+			"schema_definition": "null-schema.yml",
+			"display": true,
+			"add_to_legend": true,
+			"label_classes": [],
+			"layer_file_path": "C:\\Users\\HP\\Desktop\\prepared-country-data\\2021_common_RDS_files\\3_Mapping\\31_Resources\\312_Layer_files\\mainmap-tran-por-pt-s0-allmaps.lyr",
+			"data_schema": true,
+			"layer_file_checksum": "5b46d795fd3fad04a9a423c87a32244a",
+			"data_source_checksum": "769c3b668e0bf483c2d54b79a5849479",
+			"error_messages": [],
+			"success": true,
+			"visible": true,
+			"crs": "EPSG:4326",
+			"data_name": "hnd_tran_por_pt_s0_worldports_pp",
+			"data_source_path": "C:\\Users\\HP\\Desktop\\prepared-country-data\\honduras\\GIS/2_Active_Data\\232_tran\\hnd_tran_por_pt_s0_worldports_pp.shp",
+			"extent": [
+				-87.95,
+				13.4,
+				-85.95,
+				16.316666666666666
+			]
+		}],
+
+		"extent": [
+			-89.35664445499998,
+			12.983046638000076,
+			-83.02849060999999,
+			16.516793322000073
+		],
+		"scale_text_element": "scale",
+		"spatial_ref_text_element": "spatial_reference",
+		"template_path": "C:\\Users\\HP\\Desktop\\prepared-country-data\\2021_common_RDS_files\\3_Mapping\\32_Map_Templates\\pro-2.5_reference_portrait_bottom.pagx"
+	}]
+}'''
+)
+
+
+_temp_recipe_processed_by_controller = (
+    r'''{
+      "mapnumber": "MA9999",
+	   "category": "Reference",
+      "summary": "Every layer",
+	   "export": true,
+      "template": "reference_portrait_bottom",
+      "principal_map_frame": "Main map",
+	   "product": "Every layer",
+	   "map_frames": [{
+		  "name": "Main map",
+        "crs": "epsg:4326",
+		  "layers": [{
+			"name": "mainmap-tran-por-pt-s0-allmaps",
+			"reg_exp": "^hnd_tran_por_pt_s(u|[0-5])_(.*?)_([phm][phm])(.*?).shp$",
+			"definition_query": "",
+			"schema_definition": "null-schema.yml",
+			"display": true,
+			"add_to_legend": true,
+			"label_classes": [],
+			"layer_file_path": "C:\\Users\\HP\\Desktop\\prepared-country-data\\2021_common_RDS_files\\3_Mapping\\31_Resources\\312_Layer_files\\mainmap-tran-por-pt-s0-allmaps.lyr",
+			"data_schema": true,
+			"layer_file_checksum": "5b46d795fd3fad04a9a423c87a32244a",
+			"data_source_checksum": "769c3b668e0bf483c2d54b79a5849479",
+			"error_messages": [],
+			"success": true,
+			"visible": true,
+			"crs": "epsg:4326",
+			"data_name": "hnd_tran_por_pt_s0_worldports_pp",
+			"data_source_path": "C:\\Users\\HP\\Desktop\\prepared-country-data\\honduras\\GIS/2_Active_Data\\232_tran\\hnd_tran_por_pt_s0_worldports_pp.shp",
+			"extent": [
+				-87.95,
+				13.4,
+				-85.95,
+				16.316666666666666
+			]
+		}],
+		
+		"extent": [
+			-89.35664445499998,
+			12.983046638000076,
+			-83.02849060999999,
+			16.516793322000073
+		],
+		"scale_text_element": "scale",
+		"spatial_ref_text_element": "spatial_reference",
+      "template_path": "C:\\Users\\HP\\Desktop\\prepared-country-data\\2021_common_RDS_files\\3_Mapping\\32_Map_Templates\\pro-2.5_reference_portrait_bottom.pagx"
+	}]
+    }'''
+)
+
+_temp_recipe = json.loads(_temp_recipe_processed_by_controller)
+_root_dir = path.abspath(path.dirname(__file__))
+_shp_path = path.join(_root_dir, 'test_data', 'test_shapefile', 'aoi_elev_cst_ln_s0_gadm_pp.shp')
+_lyr_path = path.join(_root_dir, 'test_data', 'test_shapefile', 'locationmap-elev-cst-ln-s0-locationmaps.lyr')
+#_temp_recipe['map_frames'][0]['layers'][0]['data_source_path'] = _shp_path
+#_temp_recipe['map_frames'][0]['layers'][0]['layer_file_path'] = _lyr_path
+fixture_recipe_processed_by_controller = json.dumps(_temp_recipe)
 
 fixture_datasource_dictionary_ma001 = r"""
 {

@@ -3,34 +3,60 @@ os: linux
 dist: xenial
 jobs:
   include:
-  - name: Python 3.7 on Windows
-    os: windows
-    language: shell
-    before_install:
-    - choco install python --version 3.7.0
-    - python -m pip install --upgrade pip
-    env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
-  - name: Python 3.6 on Windows
-    os: windows
-    language: shell
-    before_install:
-    - choco install python --version 3.6.8
-    - python -m pip install --upgrade pip
-    env: PATH=/c/Python36:/c/Python36/Scripts:$PATH
-  - name: Python 3.7 on Xenial Linux
-    python: 3.7
+    # This is the target environment
+    - name: "Python 2.7 on Windows"
+      os: windows           # Windows 10.0.17134 N/A Build 17134
+      language: shell       # 'language: python' is an error on Travis CI Windows
+      before_install:
+        - choco install python2
+        - python -m pip install --upgrade pip
+        - pip install mock
+      env: PATH=/c/Python27:/c/Python27/Scripts:$PATH
+    # Only required becuase deployto to PyPi appears to work better on a linux VM.
+    - name: Python 3.6 on Xenial Linux
+      python: 3.6
+  allow_failures:
+    # None of the jobs below matter. They are included as a measure of how much work
+    # might be required at a future date to port this package to a different target GIS,
+    # operating system or python version.
+    #
+    # Python 3.7 is used by QGIS v3.12
+    - name: "Python 3.7 on Xenial Linux"
+      python: 3.7           
+    # Python 3.6 is used by ArcGIS Pro v2.4
+    - name: "Python 3.6 on Xenial Linux"
+      python: 3.6           # Required for ArcGIS Pro v2.4
+
+    # Python 3.7 is used by QGIS v3.12
+    - name: "Python 3.7 on Windows"
+      os: windows           # Windows 10.0.17134 N/A Build 17134
+      language: shell       # 'language: python' is an error on Travis CI Windows
+      before_install:
+        - choco install python --version 3.7.0
+        - python -m pip install --upgrade pip
+      env: PATH=/c/Python37:/c/Python37/Scripts:$PATH
+    # Python 3.6 is used by ArcGIS Pro v2.4
+    - name: "Python 3.6 on Windows"
+      os: windows           # Windows 10.0.17134 N/A Build 17134
+      language: shell       # 'language: python' is an error on Travis CI Windows
+      before_install:
+        - choco install python --version 3.6.8
+        - python -m pip install --upgrade pip
+      env: PATH=/c/Python36:/c/Python36/Scripts:$PATH
+    # Python 2.7 is used by Arcpro 
+
 install:
 - pip install -r requirements-dev.txt
 - pip install python-coveralls
-# - pip install .
+- pip install .
 script:
 - flake8
 deploy:
   provider: pypi
-  username: __token__
+  username: asmith_mapaction
   password:
-    secure: pIo/lXON3iG9FsQ4Qui1cTyE9x9M6f+hFWU+QeObWanLdmXfIjD0xDjVElHlCe6YOy8i5JbDhTvvWPhyfDjdBOqehPLIIYeaJRYSZHz2I1C3u0jHaD3uKPvKrGXXpx42ZO7D9ZlQp2ZTQIeFmdqGnF5zG/3YL6KsB5juOYidqLdRuIvJ/k2SXjpqkPgoFjwYC6qSPUnH2rDFvIQZP7q5pX1qxQTaHLpIGPlndVZjyHOT/5Js2iQw5Wn/fQDk3U4f8ZOCiMvRNRVE4tA3ZhyOG4rMmr4SZa683bGCTe86s746yGSVBXs+5PCatR/swZGPX6KuQnei+BHwGLGDRNYgcIYoiAXDAkAIyUJ+9KhAtDHljGKkdYhnjgxTAqwIz2jS0+bdC8MWGR1gdyJsUUt2XZsOwat93oR1r01gIZQLRn6F/00RmwreNTTmSzJkVieQc6ZASVfibEMVdivrlZYVamrjsneqZz26efi8tL+cTK5f+oWbhVn0Xcb/54LotOJB7l3db9kUjdDLY0YfWO+eYYEwBUuq03MNqH2N0AKA7RT/5URsC8CJmpvQ86h1s5N7g/UepXEEjCUtdg0pqVVRsqP2GvQvBYwySsisT2+82jfSCD5C4XgDLT4vkfYeWbGZizYMvIkJTSAWenip0e3sZofkce/rZxWiQ6USKSZa4S4=
-  distributions: sdist
+    secure: w+xquPzLTNX7aeFycj0m1znQJM6f3u55k67rF4kROBXPUnO0zv5iT7HgWIEpOMvGBXzs/TXmXApH4IG0vBQXP2vUTWmQVUswvqV0ojA0yl6NqPrTeHICBF0sk0Cbg8R07hZLbh6hjDo29EwikqsnEhMErBo4/PsRqN0hSxvY7CUwzPmBfibzpJ28NJ2QnbtLJEDvuiO8jayTS9/3JPKeHojgiZ4w+VyDOZ0Kn5Y1c6Z/hitxRVBo8tQ1CErJOwZlWQ4HaDaOazd2lEaH1BxCxqwgDFAco0Z2TrOcZXFDxjL9y+8MkA0wzfQirkzTiMz2NnuzmbRHzVIC6+4Is+iJwdolTK/u1/sJKKdofAJr/8t2eOHxtJOv66oa6QCTMFfcAEizJNHRw3x0k07XT9AGlRh7+xMovq7Tco5rHe8maeaBZPQhp0wkl9vzutLg07DpwuXFOh3PEfpvWig/KZT8n/QOe8KJi1WSrlsNjXzdEcjl01typ9HDUR4OhuRoHiwS1d9Ri3PUNCCGDk4oBehi/PTFDDbAMD1eusM6S9srwBv/KJMMeidfKYORpbq5iLX6hIUokOgQ5iTNN2nHAQjJoYVazj4MVQ9zxZFxSsGDHn+Gnmft67ok0L7DtgH1gcT0FnpLwuNPXBHAD90V7osb4KkttlKLzhWazufmOy2KP38=
+  distributions: "sdist"
   skip_existing: true
   cleanup: false
   on:

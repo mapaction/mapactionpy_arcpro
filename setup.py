@@ -2,7 +2,7 @@ import subprocess
 from setuptools import setup, find_packages
 from os import path, environ
 
-_base_version = '1.0.0'
+_base_version = '1.1.0'
 root_dir = path.abspath(path.dirname(__file__))
 
 
@@ -49,11 +49,10 @@ setup(name='mapactionpy_arcpro',
       install_requires=[
           'mapactionpy_controller',
           'argparse',
-          'python-slugify',
+          'slugify',
           'jsonpickle',
           'Pillow',
-          'python-resize-image',
-          'qrcode'
+          'python-resize-image'
       ],
       test_suite='unittest',
       tests_require=['unittest'],
