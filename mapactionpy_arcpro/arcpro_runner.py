@@ -216,8 +216,8 @@ class ArcProRunner(BaseRunnerPlugin):
         maxHeight = 0
 
         # Get the extents of the largest "map"
-        for map in (arc_aprx.listMaps()):
-            extent = map.defaultView.camera.getExtent()
+        for mapFrame in (lyt.listElements("MAPFRAME_ELEMENT", "*")):
+            extent = mapFrame.map.defaultView.camera.getExtent()
             if (extent.height > maxHeight) and (extent.width > maxWidth):
                 maxWidth = extent.width
                 maxHeight = extent.height
