@@ -64,7 +64,7 @@ def main(args):
     propertiesDict['proj'] = args.projection
     propertiesDict['exportDirectory'] = args.exportDirectory
     propertiesDict['product-type'] = args.productType
-    # propertiesDict['mapBookMode'] = args.mapBookMode
+    propertiesDict['mapBookMode'] = args.mapBookMode
     propertiesDict['layout'] = args.layout
     propertiesDict['status'] = args.status
     propertiesDict['location'] = args.location
