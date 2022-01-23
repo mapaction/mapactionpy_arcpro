@@ -209,7 +209,7 @@ class ArcProRunner(BaseRunnerPlugin):
         pngThumbNailFileLocation = self.exportPngThumbNail(core_file_name, export_dir, arc_aprx, recipe.export_metadata)
         recipe.zip_file_contents.append(pngThumbNailFileLocation)
 
-        if recipe.atlas:
+        if recipe.atlas or recipe.export_metadata["product-type"] == 'atlas':
             self._export_atlas(recipe, arc_aprx, export_dir, core_file_name)
 
         maxWidth = 0
@@ -233,121 +233,36 @@ class ArcProRunner(BaseRunnerPlugin):
 
         return recipe
 
-    def _export_atlas(self, recipe_with_atlas, arc_mxd, export_dir, core_file_name):
+    def _export_atlas(self, recipe, arc_aprx, export_dir, core_file_name):
         """
         Exports each individual page for recipes which contain an atlas definition
         """
-        if not recipe_with_atlas.atlas:
-            raise ValueError('Cannot export atlas. The specified recipe does not contain an atlas definition')
+        Layout = arc_aprx.listLayouts(recipe.export_metadata.get("layout", None))[0]
+        # https://pro.arcgis.com/en/pro-app/arcpy/mapping/mapseries-class.htm
 
-        # Disable view of Affected Country
-        # TODO: create a seperate method _disable_view_of_affected_polygon
-        # locationMapLayerName = "locationmap-admn-ad0-py-s0-locationmaps"  # Hard-coded
-        # layerDefinition = self.layerDefinition.properties.get(locationMapLayerName)
-        # locationMapDataFrameName = layerDefinition.mapFrame
-        # locationMapDataFrame = arcpy.mapping.ListDataFrames(arc_mxd, locationMapDataFrameName)[0]
-        # locationMapLyr = arcpy.mapping.ListLayers(arc_mxd, locationMapLayerName, locationMapDataFrame)[0]
-        # locationMapDataFrame.extent = locationMapLyr.getExtent()
-        # locationMapLyr.visible = False
-
-        # recipe_frame = [mf for mf in recipe_with_atlas.map_frames if mf.name
-        #    == recipe_with_atlas.atlas.map_frame][0]
-        #
-        # recipe_lyr = [recipe_lyr for recipe_lyr in recipe_frame.layers if
-        #     recipe_lyr.name == recipe_with_atlas.atlas.layer_name][0]
-
-        recipe_frame = recipe_with_atlas.get_frame(recipe_with_atlas.atlas.map_frame)
-        recipe_lyr = recipe_frame.get_layer(recipe_with_atlas.atlas.layer_name)
-        queryColumn = recipe_with_atlas.atlas.column_name
-
-        lyr_index = recipe_frame.layers.index(recipe_lyr)
-        arc_df = arcpy.mapping.ListDataFrames(arc_mxd, recipe_frame.name)[0]
-        arc_lyr = arcpy.mapping.ListLayers(arc_mxd, None, arc_df)[lyr_index]
-
-        # TODO: asmith 2020/03/03
-        #
-        # Presumably `regions` here means admin1 boundaries or some other internal
-        # administrative devision? Replace with a more generic name.
-
-        # For each layer and column name, export a regional map
-        regions = list()
-        # UpdateCursor requires that the queryColumn must be passed as a list or tuple
-        with arcpy.da.UpdateCursor(arc_lyr.dataSource, [queryColumn]) as cursor:
-            for row in cursor:
-                regions.append(row[0])
-
-        # This loop simulates the behaviour of Data Driven Pages. This is because of the
-        # limitations in the arcpy API for maniplulating DDPs.
-        for region in regions:
-            # TODO: asmith 2020/03/03
-            # Please do not hardcode mapFrame names. If a particular mapframe as a special
-            # meaning then this should be explicit in the structure of the mapCookBook.json
-            # and/or layerProperties.json files.arc_mxd, dataFrameName)[0]
-
-            # Select the next region
-            query = "\"" + queryColumn + "\" = \'" + region + "\'"
-            arcpy.SelectLayerByAttribute_management(arc_lyr, "NEW_SELECTION", query)
-
-            # Set the extent mapframe to the selected area
-            arc_df.extent = arc_lyr.getSelectedExtent()
-
-            # # Create a polygon using the bounding box
-            # bounds = arcpy.Array()
-            # bounds.add(arc_df.extent.lowerLeft)
-            # bounds.add(arc_df.extent.lowerRight)
-            # bounds.add(arc_df.extent.upperRight)
-            # bounds.add(arc_df.extent.upperLeft)
-            # # ensure the polygon is closed
-            # bounds.add(arc_df.extent.lowerLeft)
-            # # Create the polygon object
-            # polygon = arcpy.Polygon(bounds, arc_df.extent.spatialReference)
-
-            # bounds.removeAll()
-
-            # # Export the extent to a shapefile
-            # shapeFileName = "extent_" + slugify(unicode(region)).replace('-', '')
-            # shpFile = shapeFileName + ".shp"
-
-            # if arcpy.Exists(os.path.join(export_dir, shpFile)):
-            #     arcpy.Delete_management(os.path.join(export_dir, shpFile))
-            # arcpy.CopyFeatures_management(polygon, os.path.join(export_dir, shpFile))
-
-            # # For the 'extent' layer...
-            # locationMapDataFrameName = "Location map"
-            # locationMapDataFrame = arcpy.mapping.ListDataFrames(arc_mxd, locationMapDataFrameName)[0]
-            # extentLayerName = "locationmap-s0-py-extent"
-            # extentLayer = arcpy.mapping.ListLayers(arc_mxd, extentLayerName, locationMapDataFrame)[0]
-
-            # # Update the layer
-            # extentLayer.replaceDataSource(export_dir, 'SHAPEFILE_WORKSPACE', shapeFileName)
-            # arcpy.RefreshActiveView()
-
-            # # In Main map, zoom to the selected region
-            # dataFrameName = "Main map"
-            # df = arcpy.mapping.ListDataFrames(arc_mxd, dataFrameName)[0]
-            # arcpy.SelectLayerByAttribute_management(arc_lyr, "NEW_SELECTION", query)
-            # df.extent = arc_lyr.getSelectedExtent()
-
-            for elm in arcpy.mapping.ListLayoutElements(arc_mxd, "TEXT_ELEMENT"):
-                if elm.name == "title":
-                    elm.text = recipe_with_atlas.category + " map of " + self.hum_event.country_name +\
-                        '\n' +\
-                        "<CLR red = '255'>Sheet - " + region + "</CLR>"
-                if elm.name == "map_no":
-                    elm.text = recipe_with_atlas.mapnumber + "_Sheet_" + region.replace(' ', '_')
-
-            # Clear selection, otherwise the selected feature is highlighted in the exported map
-            arcpy.SelectLayerByAttribute_management(arc_lyr, "CLEAR_SELECTION")
-            # Export to PDF
-            # pdfFileName = core_file_name + "-" + \
-            #     slugify(unicode(region)) + "-" + str(self.hum_event.default_pdf_res_dpi) + "dpi.pdf"
-            pdfFileName = core_file_name + "-" + \
-                slugify(region) + "-" + str(self.hum_event.default_pdf_res_dpi) + "dpi.pdf"
-            pdfFileLocation = os.path.join(export_dir, pdfFileName)
-
-            arcpy.mapping.ExportToPDF(arc_mxd, pdfFileLocation, resolution=int(self.hum_event.default_pdf_res_dpi))
-            # if arcpy.Exists(os.path.join(export_dir, shpFile)):
-            #     arcpy.Delete_management(os.path.join(export_dir, shpFile))
+        # exports only the selected pages to a single, multipage PDF file:
+        if Layout.mapSeries is not None:
+            ms = Layout.mapSeries
+            if ms.enabled and (recipe.export_metadata['product-type'] == "atlas"):
+                # fields = arcpy.ListFields(fc, 'Flag')
+                if (recipe.export_metadata.get("mapBookMode", "Multiple PDF Files") == "Multiple PDF Files"):
+                    for pageNum in range(1, ms.pageCount + 1):
+                        ms.currentPageNumber = pageNum
+                        seriesMapName = getattr(ms.pageRow, ms.pageNameField.name)
+                        seriesPdfFileName = core_file_name + "-mapbook-" + seriesMapName + "-" + \
+                            recipe.export_metadata.get("pdfresolutiondpi",
+                                                       str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
+                        seriesPdfFileLocation = os.path.join(export_dir, seriesPdfFileName)
+                        ms.exportToPDF(seriesPdfFileLocation, "CURRENT", resolution=int(
+                            recipe.export_metadata.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
+                        recipe.zip_file_contents.append(seriesPdfFileLocation)
+                else:
+                    seriesPdfFileName = core_file_name + "-mapbook-" + \
+                        recipe.export_metadata.get("pdfresolutiondpi",
+                                                   str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
+                    seriesPdfFileLocation = os.path.join(export_dir, seriesPdfFileName)
+                    ms.exportToPDF(seriesPdfFileLocation, "ALL", resolution=int(
+                        recipe.export_metadata.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
 
     def exportJpeg(self, coreFileName, exportDirectory, aprx, exportParams):
         # JPEG
@@ -371,31 +286,8 @@ class ArcProRunner(BaseRunnerPlugin):
         exportParams["pdffilename"] = pdfFileName
 
         Layout = aprx.listLayouts(exportParams.get("layout", None))[0]
-        # https://pro.arcgis.com/en/pro-app/arcpy/mapping/mapseries-class.htm
-
-        # exports only the selected pages to a single, multipage PDF file:
-        if Layout.mapSeries is not None:
-            ms = Layout.mapSeries
-            if ms.enabled and (exportParams['productType'] == "atlas"):
-                # fields = arcpy.ListFields(fc, 'Flag')
-                if (exportParams.get("mapBookMode", "Multiple PDF Files") == "Multiple PDF Files"):
-                    for pageNum in range(1, ms.pageCount + 1):
-                        ms.currentPageNumber = pageNum
-                        seriesMapName = slugify(getattr(ms.pageRow, ms.pageNameField.name))
-                        seriesPdfFileName = coreFileName + "-mapbook-" + seriesMapName + "-" + \
-                            exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
-                        seriesPdfFileLocation = os.path.join(exportDirectory, seriesPdfFileName)
-                        ms.exportToPDF(seriesPdfFileLocation, "CURRENT", resolution=int(
-                            exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
-                else:
-                    seriesPdfFileName = coreFileName + "-mapbook-" + \
-                        exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi)) + "dpi.pdf"
-                    seriesPdfFileLocation = os.path.join(exportDirectory, seriesPdfFileName)
-                    ms.exportToPDF(seriesPdfFileLocation, "ALL", resolution=int(
-                        exportParams.get("pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
-        else:
-            Layout.exportToPDF(pdfFileLocation, resolution=int(exportParams.get(
-                "pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
+        Layout.exportToPDF(pdfFileLocation, resolution=int(exportParams.get(
+            "pdfresolutiondpi", str(self.hum_event.default_pdf_res_dpi))))
 
         pdfFileSize = os.path.getsize(pdfFileLocation)
         exportParams["pdffilesize"] = pdfFileSize
