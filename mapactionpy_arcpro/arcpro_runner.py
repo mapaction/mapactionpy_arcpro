@@ -191,6 +191,7 @@ class ArcProRunner(BaseRunnerPlugin):
 
         core_file_name = os.path.splitext(os.path.basename(recipe.map_project_path))[0]
         recipe.core_file_name = core_file_name
+        recipe.export_path = export_dir
 
         now = datetime.now()
         recipe.export_metadata["createdate"] = now.strftime("%Y-%m-%d %H:%M:%S")
