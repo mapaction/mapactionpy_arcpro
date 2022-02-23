@@ -385,7 +385,7 @@ class ArcProRunner(BaseRunnerPlugin):
         # Remove the temporary larger thumbnail
         os.remove(tmp_fpath)
         return png_fpath
-    def create_ouput_map_project(self, **kwargs):
+    def create_output_map_project(self, **kwargs):
         recipe = kwargs['state']
         # Create `mapNumberDirectory` for output
         output_dir = os.path.join(self.cmf.map_projects, recipe.mapnumber)
