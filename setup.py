@@ -49,7 +49,7 @@ setup(name='mapactionpy_arcpro',
       install_requires=[
           'mapactionpy_controller',
           'argparse',
-          'slugify',
+          'python-slugify',
           'jsonpickle',
           'Pillow',
           'python-resize-image'
