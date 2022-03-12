@@ -135,7 +135,7 @@ class MapChef:
         self.namingConvention = None
 
         self.dataSources = set()
-        self.createDate = datetime.utcnow().strftime("%d-%b-%Y")
+        self.createDate = datetime.utcnow().strftime("%d-%B-%Y")
         self.createTime = datetime.utcnow().strftime("%H:%M")
         self.export = False
 
@@ -471,6 +471,21 @@ class MapChef:
     def zoomToCountry(self):
         # Set map in map-frame:
         lyt = self.aprx.listLayouts("*")[0]
+        locationMapFrame = lyt.listElements("mapframe_element", "Location map*")[0]
+        locationMap = self.aprx.listMaps("Location map*")[0]
+        locationMapFrame.map = locationMap
+        locationMapFrame.zoomToAllLayers()
+        self.aprx.save()
+        for lyr in locationMap.listLayers():
+            if (lyr.name == "locationmap-admn-ad1-py-s0-locationmaps"):
+                arcpy.SelectLayerByAttribute_management(lyr, "NEW_SELECTION", "1=1")
+                layers_exten = locationMapFrame.getLayerExtent(lyr, True, True)
+                print("layers extent")
+                pprint(layers_exten.JSON)
+                locationMapFrame.camera.setExtent(layers_exten)
+                locationMapFrame.camera.scale = locationMapFrame.camera.scale * 2 
+                self.aprx.save()
+
         mainMapFrame = lyt.listElements("mapframe_element", "Main map*")[0]
         mainMap = self.aprx.listMaps("Main map*")[0]
         mainMapFrame.map = mainMap
@@ -484,4 +499,6 @@ class MapChef:
                 pprint(layers_exten.JSON)
                 mainMapFrame.camera.setExtent(layers_exten)
                 mainMapFrame.zoomToAllLayers()
+                self.aprx.save()
                 break
+    
