@@ -16,8 +16,8 @@ Installing
 ---------
 To install the lastest stable release via PyPi:
 ```
-pip install mapactionpy-controller
-pip install mapactionpy-arcpro
+python -m pip install git+https://github.com/mapaction/mapactionpy_controller.git@occamlabsarcpro
+python -m pip install git+https://github.com/mapaction/mapactionpy_arcpro.git@occamlabsarcpro
 ```
 
 To install a specific version for testing see the relevant commandline from here:
