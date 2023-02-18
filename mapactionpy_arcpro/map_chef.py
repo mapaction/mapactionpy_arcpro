@@ -64,13 +64,14 @@ class MapChef:
         print(destinationAprx)
 
         if (destinationAprx):
-        # Open APRX, List Layouts
+            # Open APRX, List Layouts
             print ("Opening: " + destinationAprx)
             self.aprx = arcpy.mp.ArcGISProject(destinationAprx)
             self.addLayers()
             self.updateTextElements()
+            print ("==================================================================================")
             self.addDataSources()
-            self.zoomToCountry()
+            # self.zoomToCountry()
 
     def createNewProjectFile(self, mapnumber, overwrite = False):
         destinationAprx = None
@@ -107,34 +108,95 @@ class MapChef:
                             foundLayerFile = True
 
     def addDataSources(self):
-        print ("addDataSources")
+        # print ("addDataSources()")
         for mapFromRecipe in self.recipe.map_frames:
+            # print ("addDataSources() : mapFromRecipe = " + mapFromRecipe.name)
             mapframeFromAprx = self.aprx.listMaps(mapFromRecipe.name)[0]
+
             for layerFromRecipe in mapFromRecipe.layers:
+                # print ("addDataSources() : layerFromRecipe = " + layerFromRecipe.name)
                 lyr = mapframeFromAprx.listLayers(layerFromRecipe.name)[0]
-                layerProperties = self.layerProperties.properties[layerFromRecipe.name]
+                # print ("addDataSources() : layerFromRecipe 1 = " + layerFromRecipe.name)
 
-                regexp = layerProperties.reg_exp.replace("{e.affected_country_iso3}", self.eventConfiguration.affected_country_iso3)
-                # if (len(layerProperties.definition_query) > 0):
-                #     definitionQuery = layerProperties.definition_query.replace("{e.country_name}", self.eventConfiguration.country_name)
-                #     lyr.definition_query = definitionQuery
-                #     print ("DEFINITION QUERY : " + definitionQuery)
-                #     self.aprx.save()
-                #     # arcpy.SelectLayerByAttribute_management(lyr, "SUBSET_SELECTION", definitionQuery)
+                if (lyr.isGroupLayer):
+                    print ("addDataSources() : layerFromRecipe 2 = " + lyr.name + " is a Group layer")
+                    for sublayer in lyr.listLayers():
+                        print ("addDataSources() : layerFromRecipe 2.1 = " + sublayer.name)
+                        layerProperties = self.layerProperties.properties.get(sublayer.name, "NOT FOUND")
 
-                for key in self.activeDataFilesDict:
-                    if re.match(regexp, key):
-                        fullPath = self.activeDataFilesDict[key]
-                        print ("ADDING : " + lyr.name + " / " + fullPath)
-                        path = os.path.dirname(fullPath)
-                        fileName = os.path.basename(fullPath)
-                        cp = lyr.connectionProperties
-                        cp['connection_info']['database'] = path
-                        cp['dataset'] = fileName
+                        print (layerProperties)
+                        regexp = layerProperties.reg_exp.replace("{e.affected_country_iso3}", self.eventConfiguration.affected_country_iso3)
+                        if (len(layerProperties.definition_query) > 0):
+                            definitionQuery = layerProperties.definition_query.replace("{e.country_name}", self.eventConfiguration.country_name)
+                            lyr.definition_query = definitionQuery
+                            print ("DEFINITION QUERY : " + definitionQuery)
+                            self.aprx.save()
+                            # arcpy.SelectLayerByAttribute_management(lyr, "SUBSET_SELECTION", definitionQuery)
 
-                        lyr.updateConnectionProperties(lyr.connectionProperties, cp)
+                        for key in self.activeDataFilesDict:
+                            if re.match(regexp, key):
+                                fullPath = self.activeDataFilesDict[key]
+                                print ("1 ADDING : " + sublayer.name + " / " + fullPath)
+                                path = os.path.dirname(fullPath)
+                                fileName = os.path.basename(fullPath)
+                                cp = sublayer.connectionProperties
+                                cp['connection_info']['database'] = path
+                                cp['dataset'] = fileName
+
+                                sublayer.updateConnectionProperties(sublayer.connectionProperties, cp)
+                                self.aprx.save()
+                                break
+                else:
+                    print ("addDataSources() : layerFromRecipe 3 = " + lyr.name + " is not a Group layer")
+                    layerProperties = self.layerProperties.properties.get(lyr.name, "NOT FOUND")
+                    print (layerProperties)
+                    regexp = layerProperties.reg_exp.replace("{e.affected_country_iso3}", self.eventConfiguration.affected_country_iso3)
+                    if (len(layerProperties.definition_query) > 0):
+                        definitionQuery = layerProperties.definition_query.replace("{e.country_name}", self.eventConfiguration.country_name)
+                        lyr.definition_query = definitionQuery
+                        print ("DEFINITION QUERY : " + definitionQuery)
                         self.aprx.save()
-                        break
+                        # arcpy.SelectLayerByAttribute_management(lyr, "SUBSET_SELECTION", definitionQuery)
+
+                    for key in self.activeDataFilesDict:
+                        if re.match(regexp, key):
+                            fullPath = self.activeDataFilesDict[key]
+                            print ("2 ADDING : " + lyr.name + " / " + fullPath)
+                            path = os.path.dirname(fullPath)
+                            fileName = os.path.basename(fullPath)
+                            cp = lyr.connectionProperties
+                            cp['connection_info']['database'] = path
+                            cp['dataset'] = fileName
+
+                            lyr.updateConnectionProperties(lyr.connectionProperties, cp)
+                            self.aprx.save()
+                            break
+
+
+                # print ("addDataSources() : layerFromRecipe 2 = " + layerFromRecipe.name)
+
+                # if layerProperties != "group":
+                #     regexp = layerProperties.reg_exp.replace("{e.affected_country_iso3}", self.eventConfiguration.affected_country_iso3)
+                    # if (len(layerProperties.definition_query) > 0):
+                    #     definitionQuery = layerProperties.definition_query.replace("{e.country_name}", self.eventConfiguration.country_name)
+                    #     lyr.definition_query = definitionQuery
+                    #     print ("DEFINITION QUERY : " + definitionQuery)
+                    #     self.aprx.save()
+                    #     # arcpy.SelectLayerByAttribute_management(lyr, "SUBSET_SELECTION", definitionQuery)
+
+                    # for key in self.activeDataFilesDict:
+                    #     if re.match(regexp, key):
+                    #         fullPath = self.activeDataFilesDict[key]
+                    #         print ("ADDING : " + lyr.name + " / " + fullPath)
+                    #         path = os.path.dirname(fullPath)
+                    #         fileName = os.path.basename(fullPath)
+                    #         cp = lyr.connectionProperties
+                    #         cp['connection_info']['database'] = path
+                    #         cp['dataset'] = fileName
+
+                    #         lyr.updateConnectionProperties(lyr.connectionProperties, cp)
+                    #         self.aprx.save()
+                    #         break
             
     def setActiveDataFiles(self):
         for folder, subfolders, files in os.walk(self.crashMoveFolder.active_data):
