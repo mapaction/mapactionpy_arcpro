@@ -38,9 +38,11 @@ class MapChef:
         self.createTime = now.strftime("%H:%M:%S")
         self.createDate = now.strftime("%d/%m/%Y")
 
-        print (self.runner.cmf.map_definitions)
+        # print (self.runner.cmf.map_definitions)
         self.crashMoveFolder = self.runner.cmf
         self.eventConfiguration = self.runner.hum_event
+
+        self.orientation = "landscape"
         self.cookbook = MapCookbook(self.runner.cmf.map_definitions)
         self.layerProperties = LayerProperties(self.runner.cmf)
         self.activeDataFilesDict = {}
@@ -69,9 +71,8 @@ class MapChef:
             self.aprx = arcpy.mp.ArcGISProject(destinationAprx)
             self.addLayers()
             self.updateTextElements()
-            print ("==================================================================================")
             self.addDataSources()
-            # self.zoomToCountry()
+            self.zoomToCountry()
 
     def createNewProjectFile(self, mapnumber, overwrite = False):
         destinationAprx = None
@@ -108,23 +109,21 @@ class MapChef:
                             foundLayerFile = True
 
     def addDataSources(self):
-        # print ("addDataSources()")
+        print ("addDataSources()")
         for mapFromRecipe in self.recipe.map_frames:
-            # print ("addDataSources() : mapFromRecipe = " + mapFromRecipe.name)
+            print ("addDataSources() : mapFromRecipe = " + mapFromRecipe.name)
             mapframeFromAprx = self.aprx.listMaps(mapFromRecipe.name)[0]
 
             for layerFromRecipe in mapFromRecipe.layers:
-                # print ("addDataSources() : layerFromRecipe = " + layerFromRecipe.name)
+                print ("addDataSources() : layerFromRecipe = " + layerFromRecipe.name)
                 lyr = mapframeFromAprx.listLayers(layerFromRecipe.name)[0]
-                # print ("addDataSources() : layerFromRecipe 1 = " + layerFromRecipe.name)
+                print ("addDataSources() : layerFromRecipe 1 = " + layerFromRecipe.name)
 
                 if (lyr.isGroupLayer):
                     print ("addDataSources() : layerFromRecipe 2 = " + lyr.name + " is a Group layer")
                     for sublayer in lyr.listLayers():
                         print ("addDataSources() : layerFromRecipe 2.1 = " + sublayer.name)
                         layerProperties = self.layerProperties.properties.get(sublayer.name, "NOT FOUND")
-
-                        print (layerProperties)
                         regexp = layerProperties.reg_exp.replace("{e.affected_country_iso3}", self.eventConfiguration.affected_country_iso3)
                         if (len(layerProperties.definition_query) > 0):
                             definitionQuery = layerProperties.definition_query.replace("{e.country_name}", self.eventConfiguration.country_name)
@@ -149,7 +148,6 @@ class MapChef:
                 else:
                     print ("addDataSources() : layerFromRecipe 3 = " + lyr.name + " is not a Group layer")
                     layerProperties = self.layerProperties.properties.get(lyr.name, "NOT FOUND")
-                    print (layerProperties)
                     regexp = layerProperties.reg_exp.replace("{e.affected_country_iso3}", self.eventConfiguration.affected_country_iso3)
                     if (len(layerProperties.definition_query) > 0):
                         definitionQuery = layerProperties.definition_query.replace("{e.country_name}", self.eventConfiguration.country_name)
@@ -841,27 +839,32 @@ class MapChef:
     #     return mapResult
 
     def zoomToCountry(self):
-        # Set map in map-frame:
-        lyt = self.aprx.listLayouts("*")[0]
-        mainMapFrame = lyt.listElements("mapframe_element", "Main map*")[0]
-        mainMap = self.aprx.listMaps("Main map*")[0]
-        print ("zoomToCountry() : " + mainMap.name)
-        mainMapFrame.map = mainMap
-        mainMapFrame.zoomToAllLayers()
-        self.aprx.save()
-        for lyr in mainMap.listLayers():
-            if (lyr.name == "mainmap-admn-ad1-py-s0-reference"):
-                print ("zoomToCountry() : Layer - " + lyr.name)
-                arcpy.MakeFeatureLayer_management(clipping_layer, 'clippingLayer')
-                arcpy.SelectLayerByAttribute_management(lyr, "NEW_SELECTION", "1=1")
-                mainMapFrame.camera.setExtent(mainMapFrame.getLayerExtent(lyr, True, True))
-                mainMapFrame.panToExtent (mainMapFrame.getLayerExtent(lyr, True, True))
-                mainMapFrame.zoomToAllLayers()
-                # mainMapFrame.RefreshActiveView()
-                mainMapFrame.camera.setExtent(mainMapFrame.getLayerExtent(lyr, False, True))
-                mainMap.defaultCamera = mainMapFrame.camera
+        # pro-2.8_reference_landscape_bottom *
+        # pro-2.8_reference_landscape_side
+        # pro-2.8_reference_portrait_bottom
+        # pro-2.8_thematic_landscape
+        # pro-2.8_thematic_portrait
 
-                # mainMapFrame.zoomToSelectedFeatures()
-                # arcpy.RefreshActiveView()
-                self.aprx.save()
-                break
+        layoutName = "*" + self.recipe.template + "_" + self.orientation + "*"
+
+        # Set map in map-frame:
+        lyt = self.aprx.listLayouts(layoutName)[0]
+        print ("zoomToCountry() : Layout name = " + lyt.name)
+
+        frames = [("Location map*", "locationmap-admn-ad1-py-s0-locationmaps"), 
+                ("Main map*", "mainmap-admn-ad1-py-s0-reference")]
+
+        for frame in frames:
+            mapFrame = lyt.listElements("mapframe_element", frame[0])[0]
+            map = self.aprx.listMaps(frame[0])[0]
+            mapFrame.map = map
+            mapFrame.zoomToAllLayers()
+            self.aprx.save()
+            for lyr in map.listLayers():
+                if (lyr.name == frame[1]):
+                    arcpy.SelectLayerByAttribute_management(lyr, "NEW_SELECTION", "1=1")
+                    layers_exten = mapFrame.getLayerExtent(lyr, True, True)
+                    mapFrame.camera.setExtent(layers_exten)
+                    mapFrame.camera.scale = mapFrame.camera.scale * 2 
+                    self.aprx.save()
+                    break
