@@ -194,8 +194,8 @@ class ArcProRunner(BaseRunnerPlugin):
         recipe.export_path = export_dir
 
         now = datetime.now()
-        recipe.export_metadata["createdate"] = now.strftime("%Y-%m-%d %H:%M:%S")
-        recipe.export_metadata["createtime"] = now.strftime("%H:%M")
+        recipe.export_metadata['createdate'] = recipe.export_metadata.get('createdate', now.strftime("%Y-%m-%d"))
+        recipe.export_metadata['createtime'] = recipe.export_metadata.get('createtime', now.strftime("%H:%M"))
         recipe.export_metadata['qclevel'] = recipe.export_metadata.get('qclevel', 'Automatically generated')
         recipe.export_metadata['accessnotes'] = recipe.export_metadata.get('accessnotes', "")
 
