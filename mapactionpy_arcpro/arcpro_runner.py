@@ -227,8 +227,8 @@ class ArcProRunner(BaseRunnerPlugin):
                     recipe.export_metadata["ymin"] = round(extent.YMin, 2)
                     recipe.export_metadata["xmax"] = round(extent.XMax, 2)
                     recipe.export_metadata["ymax"] = round(extent.YMax, 2)
-            except:
-                print("An exception occurred") 
+            except Exception as e:
+                logger.error("An exception occurred: " + e.args)
         recipe.export_metadata['mapNumber'] = recipe.mapnumber
         recipe.export_metadata['productName'] = recipe.product
         recipe.export_metadata['versionNumber'] = recipe.version_num
