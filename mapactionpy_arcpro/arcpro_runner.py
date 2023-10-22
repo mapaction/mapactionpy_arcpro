@@ -339,7 +339,7 @@ class ArcProRunner(BaseRunnerPlugin):
         # Create `mapNumberDirectory` for output
         output_dir = os.path.join(self.cmf.map_projects, recipe.mapnumber)
 
-        if not(os.path.isdir(output_dir)):
+        if not os.path.isdir(output_dir):
             os.mkdir(output_dir)
 
         # Construct output ArcGIS Pro Project name
