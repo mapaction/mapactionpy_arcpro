@@ -218,15 +218,17 @@ class ArcProRunner(BaseRunnerPlugin):
 
         # Get the extents of the largest "map"
         for mapFrame in (lyt.listElements("MAPFRAME_ELEMENT", "*")):
-            extent = mapFrame.map.defaultView.camera.getExtent()
-            if (extent.height > maxHeight) and (extent.width > maxWidth):
-                maxWidth = extent.width
-                maxHeight = extent.height
-                recipe.export_metadata["xmin"] = round(extent.XMin, 2)
-                recipe.export_metadata["ymin"] = round(extent.YMin, 2)
-                recipe.export_metadata["xmax"] = round(extent.XMax, 2)
-                recipe.export_metadata["ymax"] = round(extent.YMax, 2)
-
+            try:
+                extent = mapFrame.map.defaultView.camera.getExtent()
+                if (extent.height > maxHeight) and (extent.width > maxWidth):
+                    maxWidth = extent.width
+                    maxHeight = extent.height
+                    recipe.export_metadata["xmin"] = round(extent.XMin, 2)
+                    recipe.export_metadata["ymin"] = round(extent.YMin, 2)
+                    recipe.export_metadata["xmax"] = round(extent.XMax, 2)
+                    recipe.export_metadata["ymax"] = round(extent.YMax, 2)
+            except:
+                print("An exception occurred") 
         recipe.export_metadata['mapNumber'] = recipe.mapnumber
         recipe.export_metadata['productName'] = recipe.product
         recipe.export_metadata['versionNumber'] = recipe.version_num
