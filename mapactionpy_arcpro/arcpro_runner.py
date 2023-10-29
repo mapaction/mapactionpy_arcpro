@@ -194,8 +194,8 @@ class ArcProRunner(BaseRunnerPlugin):
         recipe.export_path = export_dir
 
         now = datetime.now()
-        recipe.export_metadata["createdate"] = now.strftime("%Y-%m-%d %H:%M:%S")
-        recipe.export_metadata["createtime"] = now.strftime("%H:%M")
+        recipe.export_metadata['createdate'] = recipe.export_metadata.get('createdate', now.strftime("%Y-%m-%d"))
+        recipe.export_metadata['createtime'] = recipe.export_metadata.get('createtime', now.strftime("%H:%M"))
         recipe.export_metadata['qclevel'] = recipe.export_metadata.get('qclevel', 'Automatically generated')
         recipe.export_metadata['accessnotes'] = recipe.export_metadata.get('accessnotes', "")
 
@@ -218,15 +218,17 @@ class ArcProRunner(BaseRunnerPlugin):
 
         # Get the extents of the largest "map"
         for mapFrame in (lyt.listElements("MAPFRAME_ELEMENT", "*")):
-            extent = mapFrame.map.defaultView.camera.getExtent()
-            if (extent.height > maxHeight) and (extent.width > maxWidth):
-                maxWidth = extent.width
-                maxHeight = extent.height
-                recipe.export_metadata["xmin"] = round(extent.XMin, 2)
-                recipe.export_metadata["ymin"] = round(extent.YMin, 2)
-                recipe.export_metadata["xmax"] = round(extent.XMax, 2)
-                recipe.export_metadata["ymax"] = round(extent.YMax, 2)
-
+            try:
+                extent = mapFrame.map.defaultView.camera.getExtent()
+                if (extent.height > maxHeight) and (extent.width > maxWidth):
+                    maxWidth = extent.width
+                    maxHeight = extent.height
+                    recipe.export_metadata["xmin"] = round(extent.XMin, 2)
+                    recipe.export_metadata["ymin"] = round(extent.YMin, 2)
+                    recipe.export_metadata["xmax"] = round(extent.XMax, 2)
+                    recipe.export_metadata["ymax"] = round(extent.YMax, 2)
+            except Exception as e:
+                logger.error("An exception occurred: " + e.args)
         recipe.export_metadata['mapNumber'] = recipe.mapnumber
         recipe.export_metadata['productName'] = recipe.product
         recipe.export_metadata['versionNumber'] = recipe.version_num
@@ -337,7 +339,7 @@ class ArcProRunner(BaseRunnerPlugin):
         # Create `mapNumberDirectory` for output
         output_dir = os.path.join(self.cmf.map_projects, recipe.mapnumber)
 
-        if not(os.path.isdir(output_dir)):
+        if not os.path.isdir(output_dir):
             os.mkdir(output_dir)
 
         # Construct output ArcGIS Pro Project name

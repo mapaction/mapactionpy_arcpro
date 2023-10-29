@@ -272,7 +272,7 @@ class MapChef:
         """
         Returns map report in json format
         """
-        return(jsonpickle.encode(self.mapReport, unpicklable=False))
+        return (jsonpickle.encode(self.mapReport, unpicklable=False))
 
     def process_layer(self, recipe_lyr, recipe_frame):
         """
@@ -329,7 +329,7 @@ class MapChef:
                         # TODO asmith 2020/03/06
                         # Is this necessary? Having a `$` at the end of the regex would have the
                         # effect of as excluding the lock files.
-                        if not(filePath.endswith("lock")):
+                        if not filePath.endswith("lock"):
                             returnPaths.append(filePath)
             else:
                 for dir in dirs:
