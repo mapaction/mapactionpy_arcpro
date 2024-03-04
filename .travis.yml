@@ -1,6 +1,6 @@
 language: python
 os: linux
-dist: xenial
+dist: jammy
 jobs:
   include:
   - name: Python 3.9 on Windows
@@ -24,8 +24,8 @@ jobs:
     - choco install python --version 3.6.8
     - python -m pip install --upgrade pip
     env: PATH=/c/Python36:/c/Python36/Scripts:$PATH
-  - name: Python 3.7 on Xenial Linux
-    python: 3.7
+  - name: Python 3.9 on Jammy Jellyfish Linux
+    python: 3.9
 install:
 - pip install -r requirements-dev.txt
 - pip install python-coveralls
